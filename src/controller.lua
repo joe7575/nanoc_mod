@@ -153,7 +153,8 @@ local function formspec(pos)
 		"button[6.6,9.2;2,0.8;reset;Reset]" ..
 		"button[8.7,9.2;2,0.8;clear;Clear]" ..
 		"button[10.8,9.2;1,0.8;token;New]" ..
-		"label[0.3,10.3;External token: " .. nanoc.token(pos) .. "]"
+		"label[0.3,10.35;External token:]" ..
+		"field[3.2,10.1;8.5,0.8;exttoken;;" .. nanoc.token(pos) .. "]"
 end
 
 local function ensure_vm(pos)
