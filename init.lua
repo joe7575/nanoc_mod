@@ -44,7 +44,6 @@ nanoc.get_position_from_hash = nanoclib.get_position_from_hash
 
 minetest.log("action", "[nanoc] loaded (nanoclib " .. tostring(nanoclib.version()) .. ")")
 
--- Subsequent modules:
--- dofile(P .. "/src/controller.lua")
--- dofile(P .. "/src/tech/wrapper.lua")
--- dofile(P .. "/src/tech/io_module.lua")
+dofile(P .. "/src/tech/wrapper.lua")
+dofile(P .. "/src/tech/io_module.lua")
+dofile(P .. "/src/controller.lua")
