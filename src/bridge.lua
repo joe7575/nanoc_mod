@@ -233,10 +233,14 @@ local function handle_debug(c, payload)
 		local src = table.concat(bytes)
 		minetest.get_meta(c.pos):set_string("program", src)
 		lib.create(c.pos)
+		lib.output_clear(c.pos)
 		local ok = lib.load(c.pos, src)
+		local msg = lib.output(c.pos)
+		lib.output_clear(c.pos)
 		lib.debug_attach(c.pos, 1, 0)
 		nanoc.dbg_pause(c.pos)
-		resp = { cmd, ok and STS.OK or STS.PARAM }
+		resp = { cmd, ok and STS.OK or STS.PARAM, #msg }
+		for i = 1, #msg do resp[#resp + 1] = msg:byte(i) end
 	else
 		resp = { cmd, STS.UNKNOWN }
 	end
