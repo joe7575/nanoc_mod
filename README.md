@@ -16,6 +16,11 @@ nodes, formspecs and (optionally) techage/tubelib2 I/O.
 - `secure.trusted_mods` must contain `nanoc`.
 - Optional: `techage` or `tubelib2` for machine I/O.
 
+## Player manual
+
+See [`doc/manual.md`](doc/manual.md) (German) for usage, the language,
+the built-in functions and the timing behaviour of `sleep()`/`millis()`.
+
 ## Install (development)
 
 The authoritative git repo lives outside the Luanti tree. Symlink it into the
