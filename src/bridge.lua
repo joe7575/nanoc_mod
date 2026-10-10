@@ -191,6 +191,25 @@ local function handle_debug(c, payload)
 		lib.step(c.pos)
 		nanoc.dbg_pause(c.pos)
 		resp = { cmd, STS.OK, 1, lib.get_reason(c.pos), lib.get_line(c.pos), lib.get_pc(c.pos) }
+	elseif cmd == CMD.VAR_INFO then
+		local scope = w[2] or 0
+		local index = w[3] or 0
+		local vars = lib.get_variables(c.pos, scope)
+		if index >= 0 and index < #vars then
+			local v = vars[index + 1]
+			local name = v.name or ""
+			resp = { cmd, STS.OK, v.kind or 0, #name }
+			for i = 1, #name do resp[#resp + 1] = name:byte(i) end
+		else
+			resp = { cmd, STS.END }
+		end
+	elseif cmd == CMD.BACKTRACE then
+		local bt = lib.get_backtrace(c.pos)
+		resp = { cmd, STS.OK, #bt }
+		for _, f in ipairs(bt) do
+			resp[#resp + 1] = f.line or 0
+			resp[#resp + 1] = f.pc or 0
+		end
 	else
 		resp = { cmd, STS.UNKNOWN }
 	end
