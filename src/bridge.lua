@@ -191,7 +191,12 @@ local function handle_debug(c, payload)
 		minetest.get_node_timer(c.pos):start(0.05)
 		resp = { cmd, STS.OK }
 	elseif cmd == CMD.STEP or cmd == CMD.STEP_OVER or cmd == CMD.STEP_OUT then
-		lib.step(c.pos)
+		local mode = (cmd == CMD.STEP) and 0 or ((cmd == CMD.STEP_OVER) and 1 or 2)
+		if lib.step_mode then
+			lib.step_mode(c.pos, mode, 100000)
+		else
+			lib.step(c.pos)
+		end
 		nanoc.dbg_pause(c.pos)
 		resp = { cmd, STS.OK, 1, lib.get_reason(c.pos), lib.get_line(c.pos), lib.get_pc(c.pos) }
 	elseif cmd == CMD.VAR_INFO then
