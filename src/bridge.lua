@@ -185,6 +185,8 @@ local function handle_debug(c, payload)
 		resp = { cmd, STS.OK }
 	elseif cmd == CMD.CONTINUE then
 		if nanoc.start then nanoc.start(c.pos) end
+		-- step over the current breakpoint trap, then run freely
+		lib.step(c.pos)
 		nanoc.dbg_resume(c.pos)
 		minetest.get_node_timer(c.pos):start(0.05)
 		resp = { cmd, STS.OK }
