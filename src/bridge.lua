@@ -198,8 +198,11 @@ local function handle_debug(c, payload)
 		if index >= 0 and index < #vars then
 			local v = vars[index + 1]
 			local name = v.name or ""
+			local val = tostring(v.value)
 			resp = { cmd, STS.OK, v.kind or 0, #name }
 			for i = 1, #name do resp[#resp + 1] = name:byte(i) end
+			resp[#resp + 1] = #val
+			for i = 1, #val do resp[#resp + 1] = val:byte(i) end
 		else
 			resp = { cmd, STS.END }
 		end
