@@ -18,7 +18,8 @@ nodes, formspecs and (optionally) techage/tubelib2 I/O.
 
 ## Player manual
 
-See [`doc/manual.md`](doc/manual.md) (German) for usage, the language,
+See [`doc/manual_DE.md`](doc/manual_DE.md) (German) or
+[`doc/manual_EN.md`](doc/manual_EN.md) (English) for usage, the language,
 the built-in functions and the timing behaviour of `sleep()`/`millis()`.
 
 ## Install (development)

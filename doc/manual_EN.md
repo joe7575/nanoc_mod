@@ -1,0 +1,86 @@
+# NanoC – Manual
+
+NanoC is a small computer for Luanti/Minetest. Programs are written in a
+C-like language and are executed on the server. Through an I/O module it can
+control Techage/TechPack machines.
+
+## Components
+
+| Node | Purpose |
+|---|---|
+| `nanoc:controller` | The computer (program editor + execution) |
+| `nanoc:terminal` | Live display of the controller's terminal output |
+| `nanoc:io_module` | Bridge to Techage/TechPack machines (ports ↔ node numbers) |
+
+## Usage
+
+1. Place a **controller** and right-click it.
+2. Write the program in the upper field, press **Save+Compile**, then **Run**.
+3. Place a **`nanoc:terminal`** nearby and right-click it – it shows the
+   output continuously (no key press needed).
+
+Buttons: `Save+Compile`, `Run`, `Stop`, `Reset`, `Clear`.
+
+## Language (examples)
+
+```
+int32 count = 0
+
+while (1) {
+    count = count + 1
+    printf("count=%d\n", count)
+    sleep(1000)
+}
+```
+
+Supported are, among others: `int32`, `str8`, `while`, `if/else`, functions
+(`func`), arrays, and `printf` (formats `%d`, `%u`, `%X`, `%s`, `%%`).
+
+## Built-in functions
+
+| Function | Meaning |
+|---|---|
+| `ta_send(port, topic, a, b, c)` | Send a command to Techage (`topic < 128`) |
+| `ta_send_s(port, topic, "text")` | Send a string command (e.g. for displays) |
+| `ta_signal(port, 0\|1)` | Send an on/off signal |
+| `ta_recv()` | 1 if a command arrived (else 0) |
+| `ta_port()`, `ta_topic()`, `ta_payload(i)` | read the received command |
+| `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | read the received signal |
+| `key()` | next key as a number, or -1 |
+| `sleep(ms)` | pause the program for `ms` milliseconds |
+| `millis()` | milliseconds since program start |
+
+## Timing – important
+
+- **`sleep(ms)` is in real milliseconds**, but the *wake-up time* depends on
+  the server tick: Luanti processes node timers only once per server step
+  (default `dedicated_server_step` = **0.09 s**). There is also a 50 ms floor.
+  In practice the resolution is therefore **about 0.1 seconds**.
+- The program never wakes up **too early**, but may be up to one server step
+  **late**.
+- **`millis()`** returns real milliseconds and is independent of the server
+  step. It can be used to measure time without pausing.
+- Execution runs in **cycle budgets**: each timer tick the controller executes
+  up to 50,000 instructions and then yields. Several controllers therefore run
+  one after another (cooperatively), not truly in parallel.
+- To "do something every second", `sleep(1000)` inside a `while (1)` loop is
+  the simple way; for finer behaviour without pausing, use `millis()`.
+
+## Techage / TechPack
+
+1. Place a `nanoc:io_module` within 3 blocks of the controller.
+2. Right-click the I/O module: enter the base port and the Techage numbers,
+   then save.
+3. On the controller press **Stop**, then **Run** – this registers the port
+   mapping.
+
+Each port stands for a Techage/TechPack node number. `ta_send` with
+`topic < 128` sends a command, `topic >= 128` requests data (the reply lands in
+the receive queue and can be fetched with `ta_recv()`).
+
+## Persistence
+
+The state (variables, program counter, …) is saved on a **clean server
+shutdown** and restored on the next start. `Save+Compile` deliberately starts a
+changed program from the beginning. After a server crash the intermediate state
+is lost.
