@@ -41,7 +41,8 @@ local CH_DEBUG, CH_TERM, CH_CTRL = 1, 2, 3
 
 local CMD = { ATTACH = 1, DETACH = 2, STATE = 3, BP_SET = 4, BP_CLR = 5,
 	BP_CLR_ALL = 6, HALT = 7, CONTINUE = 8, STEP = 9, STEP_OVER = 10,
-	STEP_OUT = 11, VAR_INFO = 12, VAR_WRITE = 13, ARR_READ = 14, BACKTRACE = 15 }
+	STEP_OUT = 11, VAR_INFO = 12, VAR_WRITE = 13, ARR_READ = 14, BACKTRACE = 15,
+	PROG_GET = 0x20, PROG_SET = 0x21 }
 local EVT = { HALTED = 0x80, ENDED = 0x81, DETACHED = 0x82 }
 local STS = { OK = 0, END = 1, NOT_ATTACHED = 2, NO_SCRIPT = 3, PARAM = 4,
 	NOT_HALTED = 5, FULL = 6, NO_CODE = 7, DENIED = 8, UNKNOWN = 9 }
@@ -221,6 +222,21 @@ local function handle_debug(c, payload)
 			resp[#resp + 1] = f.line or 0
 			resp[#resp + 1] = f.pc or 0
 		end
+	elseif cmd == CMD.PROG_GET then
+		local src = minetest.get_meta(c.pos):get_string("program")
+		resp = { cmd, STS.OK, #src }
+		for i = 1, #src do resp[#resp + 1] = src:byte(i) end
+	elseif cmd == CMD.PROG_SET then
+		local len = w[2] or 0
+		local bytes = {}
+		for i = 1, len do bytes[i] = string.char(w[2 + i] or 0) end
+		local src = table.concat(bytes)
+		minetest.get_meta(c.pos):set_string("program", src)
+		lib.create(c.pos)
+		local ok = lib.load(c.pos, src)
+		lib.debug_attach(c.pos, 1, 0)
+		nanoc.dbg_pause(c.pos)
+		resp = { cmd, ok and STS.OK or STS.PARAM }
 	else
 		resp = { cmd, STS.UNKNOWN }
 	end
