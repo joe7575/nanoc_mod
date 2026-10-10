@@ -18,6 +18,7 @@ local P2S = function(pos) if pos then return minetest.pos_to_string(pos) end end
 local S2P = function(s) return minetest.string_to_pos(s) end
 
 local lib = nanoc.lib
+local storage = minetest.get_mod_storage()
 
 local RADIUS = 3
 local CYCLE_TIME = 0.2          -- seconds per timer tick
@@ -25,6 +26,7 @@ local CYCLES_PER_TICK = 50000   -- VM instructions per tick
 local MAX_LINES = 40            -- keep only the last N terminal lines
 
 local Output = {}               -- [hash] = terminal output buffer
+local Loaded = {}               -- [hash] = pos, all live VMs (for persistence)
 
 local DEFAULT_PROGRAM = [[
 // NanoC controller demo
@@ -112,6 +114,22 @@ local function formspec(pos)
 		"button[8.7,9.2;2,0.8;clear;Clear]"
 end
 
+local function ensure_vm(pos)
+	if lib.is_loaded(pos) then
+		Loaded[hash(pos)] = pos
+		return
+	end
+	lib.create(pos)
+	local key = hash(pos)
+	local img = storage:get_string(key)
+	if img ~= "" and lib.unpack_vm(pos, img) then
+		-- restored frozen state (code + variables + pc)
+	else
+		lib.load(pos, M(pos):get_string("program"))
+	end
+	Loaded[key] = pos
+end
+
 local function compile(pos)
 	local meta = M(pos)
 	local src = meta:get_string("program")
@@ -125,7 +143,11 @@ local function compile(pos)
 	lib.output_clear(pos)
 	if not ok then
 		append_output(pos, "[compile error]\n" .. compile_out)
+	else
+		-- fresh program: drop any stored frozen state
+		storage:set_string(hash(pos), "")
 	end
+	Loaded[hash(pos)] = pos
 end
 
 local function start(pos)
@@ -158,9 +180,7 @@ minetest.register_node("nanoc:controller", {
 		if not meta:contains("program") then
 			meta:set_string("program", DEFAULT_PROGRAM)
 		end
-		if lib.create(pos) then
-			lib.load(pos, meta:get_string("program"))
-		end
+		ensure_vm(pos)
 	end,
 
 	after_place_node = function(pos, placer)
@@ -174,6 +194,8 @@ minetest.register_node("nanoc:controller", {
 	after_dig_node = function(pos)
 		stop(pos)
 		lib.destroy(pos)
+		Loaded[hash(pos)] = nil
+		storage:set_string(hash(pos), "")
 		nanoc.tech.del_mem(pos)
 		Output[hash(pos)] = nil
 	end,
@@ -237,12 +259,22 @@ minetest.register_lbm({
 	run_at_every_load = true,
 	action = function(pos)
 		local meta = M(pos)
-		if lib.create(pos) then
-			lib.load(pos, meta:get_string("program"))
-		end
+		ensure_vm(pos)
 		if meta:get_int("running") == 1 then
 			call_io(pos, "on_start_io")
 			minetest.get_node_timer(pos):start(CYCLE_TIME)
 		end
 	end,
 })
+
+-- Freeze the VM state on shutdown (NanoBasic/beduino pattern)
+minetest.register_on_shutdown(function()
+	for key, pos in pairs(Loaded) do
+		if lib.is_loaded(pos) then
+			local img = lib.pack_vm(pos)
+			if img then
+				storage:set_string(key, img)
+			end
+		end
+	end
+end)
