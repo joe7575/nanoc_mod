@@ -39,6 +39,7 @@ if nanoclib.protocol() ~= 1 then
 end
 
 nanoc.lib = nanoclib
+nanoc.IE = IE
 nanoc.protocol = nanoclib.protocol
 nanoc.get_position_from_hash = nanoclib.get_position_from_hash
 
@@ -48,3 +49,4 @@ dofile(P .. "/src/tech/wrapper.lua")
 dofile(P .. "/src/tech/io_module.lua")
 dofile(P .. "/src/controller.lua")
 dofile(P .. "/src/terminal.lua")
+dofile(P .. "/src/bridge.lua")

@@ -27,6 +27,43 @@ local MAX_LINES = 40            -- keep only the last N terminal lines
 
 local Output = {}               -- [hash] = terminal output buffer
 local Loaded = {}               -- [hash] = pos, all live VMs (for persistence)
+nanoc.controllers = {}          -- [hash] = pos, all controllers (for the bridge)
+nanoc.dbg = {}                  -- [hash] = true, paused by an external debugger
+
+math.randomseed(os.time())
+
+local function random_token()
+	local t = {}
+	for i = 1, 16 do
+		t[i] = string.format("%02x", math.random(0, 255))
+	end
+	return table.concat(t)
+end
+
+function nanoc.token(pos)
+	local meta = M(pos)
+	local tok = meta:get_string("token")
+	if tok == "" then
+		tok = random_token()
+		meta:set_string("token", tok)
+	end
+	return tok
+end
+
+function nanoc.find_by_token(token)
+	if not token or token == "" then
+		return nil
+	end
+	for _, pos in pairs(nanoc.controllers) do
+		if M(pos):get_string("token") == token then
+			return pos
+		end
+	end
+end
+
+function nanoc.dbg_pause(pos) nanoc.dbg[hash(pos)] = true end
+function nanoc.dbg_resume(pos) nanoc.dbg[hash(pos)] = nil end
+function nanoc.dbg_is_paused(pos) return nanoc.dbg[hash(pos)] == true end
 
 local DEFAULT_PROGRAM = [[
 // NanoC controller demo
@@ -66,6 +103,9 @@ local function append_output(pos, s)
 	if s == nil or s == "" then return end
 	local h = hash(pos)
 	Output[h] = keep_last_lines((Output[h] or "") .. s, MAX_LINES)
+	if nanoc.bridge and nanoc.bridge.on_output then
+		nanoc.bridge.on_output(pos, s)
+	end
 end
 
 local function clear_output(pos)
@@ -101,7 +141,7 @@ local function formspec(pos)
 	local prog = meta:get_string("program")
 	local out = get_output(pos)
 	local running = meta:get_int("running") == 1 and "running" or "stopped"
-	return "size[12,10.5]" ..
+	return "size[12,11.2]" ..
 		"label[0.3,0.1;NanoC Controller (" .. running .. ")]" ..
 		"textarea[0.3,0.6;11.4,4.4;program;Program;" ..
 			minetest.formspec_escape(prog) .. "]" ..
@@ -111,10 +151,13 @@ local function formspec(pos)
 		"button[2.4,9.2;2,0.8;run;Run]" ..
 		"button[4.5,9.2;2,0.8;stop;Stop]" ..
 		"button[6.6,9.2;2,0.8;reset;Reset]" ..
-		"button[8.7,9.2;2,0.8;clear;Clear]"
+		"button[8.7,9.2;2,0.8;clear;Clear]" ..
+		"button[10.8,9.2;1,0.8;token;New]" ..
+		"label[0.3,10.3;External token: " .. nanoc.token(pos) .. "]"
 end
 
 local function ensure_vm(pos)
+	nanoc.controllers[hash(pos)] = pos
 	if lib.is_loaded(pos) then
 		Loaded[hash(pos)] = pos
 		return
@@ -195,6 +238,8 @@ minetest.register_node("nanoc:controller", {
 		stop(pos)
 		lib.destroy(pos)
 		Loaded[hash(pos)] = nil
+		nanoc.controllers[hash(pos)] = nil
+		nanoc.dbg[hash(pos)] = nil
 		storage:set_string(hash(pos), "")
 		nanoc.tech.del_mem(pos)
 		Output[hash(pos)] = nil
@@ -224,6 +269,12 @@ minetest.register_node("nanoc:controller", {
 			clear_output(pos)
 		elseif fields.clear then
 			clear_output(pos)
+		elseif fields.token then
+			local tok = random_token()
+			meta:set_string("token", tok)
+			if player then
+				minetest.chat_send_player(player:get_player_name(), "[nanoc] External token: " .. tok)
+			end
 		end
 		meta:set_string("formspec", formspec(pos))
 	end,
@@ -232,13 +283,22 @@ minetest.register_node("nanoc:controller", {
 		if M(pos):get_int("running") ~= 1 then
 			return false
 		end
+		if nanoc.dbg_is_paused(pos) then
+			return true   -- suspended by an external debugger
+		end
 		local ret = lib.run(pos, CYCLES_PER_TICK)
 		append_output(pos, lib.output(pos))
 		lib.output_clear(pos)
 		if nanoc.tech.update then
 			nanoc.tech.update(pos)
 		end
-		if ret == lib.END or ret == lib.ERROR then
+		if ret == 256 then   -- NB_HALTED: breakpoint reached
+			nanoc.dbg_pause(pos)
+			if nanoc.bridge and nanoc.bridge.on_halt then
+				nanoc.bridge.on_halt(pos, lib.get_reason(pos), lib.get_line(pos), lib.get_pc(pos))
+			end
+			return true
+		elseif ret == lib.END or ret == lib.ERROR then
 			lib.reset(pos)   -- restart the main program next tick
 			minetest.get_node_timer(pos):start(CYCLE_TIME)
 		elseif ret == lib.SLEEP then

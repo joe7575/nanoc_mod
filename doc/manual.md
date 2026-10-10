@@ -78,6 +78,26 @@ Each port stands for a Techage/TechPack node number. `ta_send` with
 `topic < 128` sends a command, `topic >= 128` requests data (the reply lands in
 the receive queue and can be fetched with `ta_recv()`).
 
+## External terminal / debugger (Python client)
+
+A controller can be reached from a PC via TCP:
+
+1. **Server**: enable the bridge (`nanoc_bridge_enable = true` in
+   `minetest.conf`) and install LuaSocket:
+   `luarocks --lua-version 5.1 install luasocket`. It binds to `127.0.0.1:41100`
+   by default (`nanoc_bridge_bind` / `nanoc_bridge_port`).
+2. **In-game**: open the controller; the "External token" is shown. The
+   `New` button regenerates it.
+3. **On the PC**:
+   ```bash
+   python -m nanoc_client.cli --host 127.0.0.1 --port 41100 --token <TOKEN>
+   ```
+   Commands: `state`, `attach`, `bp <line>`, `step`, `cont`, `vars`, `key`,
+   `help`.
+
+The bridge only listens on localhost by default. Never expose it to the
+internet without a tunnel/TLS – the token is the only protection.
+
 ## Persistence
 
 The state (variables, program counter, …) is saved on a **clean server
