@@ -1,0 +1,13 @@
+# Lua
+*.luac
+luac.out
+
+# luarocks build output
+*.rock
+lua_modules/
+.luarocks/
+
+# editor / os
+*.swp
+*~
+.DS_Store
