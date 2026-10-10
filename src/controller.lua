@@ -206,6 +206,10 @@ local function stop(pos)
 	minetest.get_node_timer(pos):stop()
 end
 
+-- public (used by the external bridge)
+function nanoc.start(pos) start(pos) end
+function nanoc.stop(pos) stop(pos) end
+
 minetest.register_node("nanoc:controller", {
 	description = "NanoC Controller",
 	tiles = { "default_glass.png" },

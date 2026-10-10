@@ -184,6 +184,7 @@ local function handle_debug(c, payload)
 		nanoc.dbg_pause(c.pos)
 		resp = { cmd, STS.OK }
 	elseif cmd == CMD.CONTINUE then
+		if nanoc.start then nanoc.start(c.pos) end
 		nanoc.dbg_resume(c.pos)
 		minetest.get_node_timer(c.pos):start(0.05)
 		resp = { cmd, STS.OK }
