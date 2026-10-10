@@ -34,7 +34,7 @@ while (1) {
 ```
 
 Supported are, among others: `int32`, `str8`, `while`, `if/else`, functions
-(`func`), arrays, and `printf` (formats `%d`, `%u`, `%X`, `%s`, `%%`).
+(`func`), arrays, and `printf` (formats `%d`, `%u`, `%h`, `%s`, `%%`).
 
 Functions use typed parameters and an optional return type **before** the name
 (omitted = `void`):
@@ -46,6 +46,9 @@ func int32 add(int32 a, int32 b) {
 
 int32 x = add(3, 4)
 ```
+
+Full language reference:
+<https://github.com/joe7575/nanoc/blob/main/docs/nanoc_reference.md>
 
 ## Built-in functions
 
