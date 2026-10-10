@@ -29,8 +29,11 @@ local DEFAULT_PROGRAM = [[
 // NanoC controller demo
 int32 count = 0
 
-count = count + 1
-printf("NanoC ready, count=%d\n", count)
+while (1) {
+    count = count + 1
+    printf("NanoC ready, count=%d\n", count)
+    sleep(1000)
+}
 ]]
 
 local function hash(pos) return H(pos) end
@@ -188,8 +191,14 @@ minetest.register_node("nanoc:controller", {
 		if nanoc.tech.update then
 			nanoc.tech.update(pos)
 		end
-		if ret == 0 or ret == 1 then
+		if ret == lib.END or ret == lib.ERROR then
 			lib.reset(pos)   -- restart the main program next tick
+			minetest.get_node_timer(pos):start(CYCLE_TIME)
+		elseif ret == lib.SLEEP then
+			local ms = lib.sleep_remaining(pos)
+			minetest.get_node_timer(pos):start(math.max(ms / 1000, 0.05))
+		else
+			minetest.get_node_timer(pos):start(CYCLE_TIME)
 		end
 		return true
 	end,
