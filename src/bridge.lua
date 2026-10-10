@@ -218,6 +218,11 @@ local function handle_debug(c, payload)
 	end
 
 	send_frame(c, CH_DEBUG, words(resp))
+
+	-- HALT pauses without running to a breakpoint; report it as an event too
+	if cmd == CMD.HALT then
+		send_frame(c, CH_DEBUG, words({ EVT.HALTED, 3, lib.get_line(c.pos), lib.get_pc(c.pos) }))
+	end
 end
 
 local function do_handshake(c, payload)
