@@ -61,9 +61,9 @@ function nanoc.find_by_token(token)
 	end
 end
 
-function nanoc.dbg_pause(pos) nanoc.dbg[hash(pos)] = true end
-function nanoc.dbg_resume(pos) nanoc.dbg[hash(pos)] = nil end
-function nanoc.dbg_is_paused(pos) return nanoc.dbg[hash(pos)] == true end
+function nanoc.dbg_pause(pos) nanoc.dbg[H(pos)] = true end
+function nanoc.dbg_resume(pos) nanoc.dbg[H(pos)] = nil end
+function nanoc.dbg_is_paused(pos) return nanoc.dbg[H(pos)] == true end
 
 local DEFAULT_PROGRAM = [[
 // NanoC controller demo
