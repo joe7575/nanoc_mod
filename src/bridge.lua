@@ -25,10 +25,22 @@ if not minetest.settings:get_bool("nanoc_bridge_enable", false) then
 	return
 end
 
-local ok, socket = pcall(nanoc.IE.require, "socket")
+-- Make sure the insecure environment can find LuaRocks-installed modules
+-- (the engine's default package.path does not always include them).
+local IE = nanoc.IE
+if IE.package then
+	IE.package.path = (IE.package.path or "") ..
+		";/usr/local/share/lua/5.1/?.lua;/usr/local/share/lua/5.1/?/init.lua"
+	IE.package.cpath = (IE.package.cpath or "") ..
+		";/usr/local/lib/lua/5.1/?.so"
+	minetest.log("verbose", "[nanoc] bridge: package.path = " .. tostring(IE.package.path))
+	minetest.log("verbose", "[nanoc] bridge: package.cpath = " .. tostring(IE.package.cpath))
+end
+
+local ok, socket = pcall(IE.require, "socket")
 if not ok then
-	minetest.log("warning", "[nanoc] bridge: LuaSocket missing; install with "
-		.. "'luarocks --lua-version 5.1 install luasocket'")
+	minetest.log("warning", "[nanoc] bridge: LuaSocket missing (" .. tostring(socket)
+		.. "); install with 'luarocks --lua-version 5.1 install luasocket'")
 	return
 end
 
