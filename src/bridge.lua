@@ -11,12 +11,12 @@
 	TCP bridge for the external Python client (protocol v1).
 	See nanoc_lib/doc/protocol.md.
 
-	Runs only if 'nanoc_bridge_enable = true'. Needs LuaSocket in the
-	insecure environment (luarocks install luasocket). The socket is polled
-	non-blocking from a globalstep, so the server thread never blocks.
+	The sockets live in the nanoclib C module (non-blocking, polled from a
+	globalstep), so there is no LuaSocket dependency and the server thread
+	never blocks. Enabled with 'nanoc_bridge_enable = true'.
 
 	Security: a client must present the controller's "external token"
-	(shown in the controller formspec / chat). Bind to 127.0.0.1 by default.
+	(shown in the controller formspec). Binds to 127.0.0.1 by default.
 
 ]]--
 
@@ -25,22 +25,9 @@ if not minetest.settings:get_bool("nanoc_bridge_enable", false) then
 	return
 end
 
--- Make sure the insecure environment can find LuaRocks-installed modules
--- (the engine's default package.path does not always include them).
-local IE = nanoc.IE
-if IE.package then
-	IE.package.path = (IE.package.path or "") ..
-		";/usr/local/share/lua/5.1/?.lua;/usr/local/share/lua/5.1/?/init.lua"
-	IE.package.cpath = (IE.package.cpath or "") ..
-		";/usr/local/lib/lua/5.1/?.so"
-	minetest.log("verbose", "[nanoc] bridge: package.path = " .. tostring(IE.package.path))
-	minetest.log("verbose", "[nanoc] bridge: package.cpath = " .. tostring(IE.package.cpath))
-end
-
-local ok, socket = pcall(IE.require, "socket")
-if not ok then
-	minetest.log("warning", "[nanoc] bridge: LuaSocket missing (" .. tostring(socket)
-		.. "); install with 'luarocks --lua-version 5.1 install luasocket'")
+local lib = nanoc.lib
+if not lib.net_listen then
+	minetest.log("warning", "[nanoc] bridge: nanoclib has no socket support (rebuild/update nanoclib)")
 	return
 end
 
@@ -59,8 +46,6 @@ local EVT = { HALTED = 0x80, ENDED = 0x81, DETACHED = 0x82 }
 local STS = { OK = 0, END = 1, NOT_ATTACHED = 2, NO_SCRIPT = 3, PARAM = 4,
 	NOT_HALTED = 5, FULL = 6, NO_CODE = 7, DENIED = 8, UNKNOWN = 9 }
 local HSTAT = { OK = 0, BAD_PROTOCOL = 1, BAD_TOKEN = 2, BUSY = 3 }
-
-local lib = nanoc.lib
 
 -- ---- byte helpers (LuaJIT has no string.pack) ----
 
@@ -108,47 +93,29 @@ end
 
 -- ---- server ----
 
-local server = socket.bind(BIND, PORT)
+local server = lib.net_listen(BIND, PORT)
 if not server then
 	minetest.log("error", "[nanoc] bridge: cannot bind " .. BIND .. ":" .. PORT)
 	return
 end
-server:settimeout(0)
 
-local clients = {}
+local clients = {}   -- [socket id] = { id, buf, session, pos, authed }
 nanoc.bridge = {}
 
 local function send_frame(c, channel, payload)
-	c.outbuf = c.outbuf .. frame(channel, payload, c.session)
+	lib.net_send(c.id, frame(channel, payload, c.session))
 end
 
 local function close_client(c)
-	c.sock:close()
-	clients[c] = nil
-end
-
-local function flush(c)
-	if c.outbuf == "" then
-		return true
-	end
-	local sent, err, last = c.sock:send(c.outbuf)
-	if sent then
-		c.outbuf = ""
-	elseif err == "timeout" then
-		c.outbuf = c.outbuf:sub((last or 0) + 1)
-	else
-		return false
-	end
-	return true
+	lib.net_close(c.id)
+	clients[c.id] = nil
 end
 
 local function read_available(c)
-	local data, err, partial = c.sock:receive(4096)
+	local data, err = lib.net_recv(c.id)
 	if data then
 		c.buf = c.buf .. data
-	elseif partial and #partial > 0 then
-		c.buf = c.buf .. partial
-	elseif err and err ~= "timeout" then
+	elseif err == "closed" then
 		return false
 	end
 	return true
@@ -231,10 +198,6 @@ local function handle_debug(c, payload)
 	send_frame(c, CH_DEBUG, words(resp))
 end
 
-local function handle_term(c, payload)
-	lib.push_key(c.pos, payload)
-end
-
 local function do_handshake(c, payload)
 	local proto = r_u32le(payload, 1)
 	local token_len = payload:byte(5) or 0
@@ -252,7 +215,6 @@ local function do_handshake(c, payload)
 	c.pos = pos
 	c.authed = true
 	send_frame(c, CH_CTRL, string.char(HSTAT.OK) .. u32le(VERSION))
-	-- push the current terminal content once
 	local out = nanoc.get_output(pos)
 	if out and out ~= "" then
 		send_frame(c, CH_TERM, out)
@@ -267,7 +229,7 @@ local function same_pos(a, b)
 end
 
 function nanoc.bridge.on_output(pos, text)
-	for c in pairs(clients) do
+	for _, c in pairs(clients) do
 		if c.authed and same_pos(c.pos, pos) then
 			send_frame(c, CH_TERM, text)
 		end
@@ -275,7 +237,7 @@ function nanoc.bridge.on_output(pos, text)
 end
 
 function nanoc.bridge.on_halt(pos, reason, line, pc)
-	for c in pairs(clients) do
+	for _, c in pairs(clients) do
 		if c.authed and same_pos(c.pos, pos) then
 			send_frame(c, CH_DEBUG, words({ EVT.HALTED, reason or 0, line or 0, pc or 0 }))
 		end
@@ -292,17 +254,14 @@ minetest.register_globalstep(function(dtime)
 	end
 	acc = 0
 
-	-- accept
 	while true do
-		local sock = server:accept()
-		if not sock then break end
-		sock:settimeout(0)
-		local c = { sock = sock, buf = "", outbuf = "", session = 0, pos = nil, authed = false }
-		clients[c] = true
+		local id = lib.net_accept(server)
+		if not id then break end
+		clients[id] = { id = id, buf = "", session = 0, pos = nil, authed = false }
 	end
 
 	local dead = {}
-	for c in pairs(clients) do
+	for id, c in pairs(clients) do
 		local alive = read_available(c)
 		if alive then
 			local frames = parse_frames(c)
@@ -319,13 +278,10 @@ minetest.register_globalstep(function(dtime)
 					elseif f.channel == CH_DEBUG then
 						handle_debug(c, f.payload)
 					elseif f.channel == CH_TERM then
-						handle_term(c, f.payload)
+						lib.push_key(c.pos, f.payload)
 					end
 				end
 			end
-		end
-		if alive then
-			alive = flush(c)
 		end
 		if not alive then
 			dead[#dead + 1] = c
@@ -337,10 +293,12 @@ minetest.register_globalstep(function(dtime)
 end)
 
 minetest.register_on_shutdown(function()
-	for c, _ in pairs(clients) do
-		pcall(function() c.sock:close() end)
+	for _, c in pairs(clients) do
+		lib.net_close(c.id)
 	end
-	server:close()
+	if server then
+		lib.net_close(server)
+	end
 end)
 
 minetest.log("action", "[nanoc] bridge listening on " .. BIND .. ":" .. PORT)

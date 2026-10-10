@@ -82,9 +82,9 @@ landet in der Empfangs-Queue, abholbar mit `ta_recv()`).
 Ein Controller ist vom PC aus per TCP erreichbar:
 
 1. **Server**: Bridge einschalten (`nanoc_bridge_enable = true` in
-   `minetest.conf`) und LuaSocket installieren:
-   `luarocks --lua-version 5.1 install luasocket`. Sie lauscht standardmäßig auf
-   `127.0.0.1:41100` (`nanoc_bridge_bind` / `nanoc_bridge_port`).
+   `minetest.conf`). Sie lauscht standardmäßig auf `127.0.0.1:41100`
+   (`nanoc_bridge_bind` / `nanoc_bridge_port`). Keine extra Abhängigkeit – die
+   Sockets stecken in `nanoclib`.
 2. **Im Spiel**: Controller öffnen; unten steht der „External token". Der
    Button `New` erzeugt einen neuen.
 3. **Am PC**:
