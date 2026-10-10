@@ -36,6 +36,17 @@ while (1) {
 Unterstützt werden u. a. `int32`, `str8`, `while`, `if/else`, Funktionen
 (`func`), Arrays, `printf` (Formate `%d`, `%u`, `%X`, `%s`, `%%`).
 
+Funktionen haben **typisierte Parameter** und einen optionalen Rückgabetyp
+**vor** dem Namen (weggelassen = `void`):
+
+```
+func int32 add(int32 a, int32 b) {
+    return a + b
+}
+
+int32 x = add(3, 4)
+```
+
 ## Eingebaute Funktionen
 
 | Funktion | Bedeutung |
