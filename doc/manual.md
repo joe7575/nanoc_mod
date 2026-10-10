@@ -50,6 +50,63 @@ int32 x = add(3, 4)
 Full language reference:
 <https://github.com/joe7575/nanoc/blob/main/docs/nanoc_reference.md>
 
+### Types, variables, constants
+
+`int32` (32-bit integer), `str8` (string; the name ends with `$`), arrays
+`int32 buf[10]`. `const NAME = value` defines a compile-time constant.
+Variables are auto-created on assignment; statements end at the newline or `;`.
+
+```
+int32 count = 0
+str8 name$ = "Hello"
+int32 buf[10]
+const MAX = 100
+count = count + 1
+buf[0] = count
+```
+
+Operators: `+ - * / % mod`, `& | ^ << >>`, `== != < <= > >=`, `and or not`,
+`++ --`. Strings can be concatenated with `+` and compared with `== < >`.
+
+### Control flow
+
+```
+if (x > 0) { ... } else { ... }
+while (i < 10) { i++ }
+for i = 1 to 10 { printf("%d\n", i) }
+for i = 10 to 0 step -1 { ... }
+dispatch(expr) { func0, func1, func2 }   // call by 0-based index
+end      // terminate the program
+reti     // return from an interrupt handler
+```
+
+### Functions and arrays
+
+Parameters are typed; the optional return type comes **before** the name
+(omitted = `void`). Array parameters are passed by reference with `int32[]`.
+
+```
+func int32 add(int32 a, int32 b) {
+    return a + b
+}
+
+func sum(int32[] arr, int32 n) {
+    int32 s = 0
+    for i = 0 to n - 1 { s = s + arr[i] }
+    return s
+}
+```
+
+### Standard functions
+
+- numeric: `rnd(n)`, `abs(n)`
+- strings: `len(s$)`, `left$(s$,n)`, `right$(s$,n)`, `mid$(s$,start,len)`,
+  `str$(n)`, `hex$(n)`, `instr(start,s$,find$)`, `string$(n,char$)`
+- byte / memory: `u8(arr,offs[,val])`, `u16(...)`, `u32(...)`,
+  `copy(src,soff,dst,doff,len)`, `free()`
+
+(Plus the NanoC-computer functions in the table below.)
+
 ## Built-in functions
 
 | Function | Meaning |
