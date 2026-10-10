@@ -54,6 +54,15 @@ local function clear_output(pos)
 	Output[hash(pos)] = ""
 end
 
+-- public accessors (also used by the terminal node)
+function nanoc.get_output(pos)
+	return Output[hash(pos)] or ""
+end
+
+function nanoc.clear_output(pos)
+	Output[hash(pos)] = ""
+end
+
 local function find_io_nodes(cpu_pos)
 	local pos1 = { x = cpu_pos.x - RADIUS, y = cpu_pos.y - RADIUS, z = cpu_pos.z - RADIUS }
 	local pos2 = { x = cpu_pos.x + RADIUS, y = cpu_pos.y + RADIUS, z = cpu_pos.z + RADIUS }
