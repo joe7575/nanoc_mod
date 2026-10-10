@@ -22,6 +22,7 @@ local lib = nanoc.lib
 local RADIUS = 3
 local CYCLE_TIME = 0.2          -- seconds per timer tick
 local CYCLES_PER_TICK = 50000   -- VM instructions per tick
+local MAX_LINES = 40            -- keep only the last N terminal lines
 
 local Output = {}               -- [hash] = terminal output buffer
 
@@ -42,12 +43,27 @@ local function get_output(pos)
 	return Output[hash(pos)] or ""
 end
 
+local function keep_last_lines(s, max_lines)
+	local n = 0
+	for _ in s:gmatch("\n") do n = n + 1 end
+	if n <= max_lines then
+		return s
+	end
+	local cut = n - max_lines
+	local idx = 0
+	while cut > 0 do
+		local p = s:find("\n", idx + 1, true)
+		if not p then break end
+		idx = p
+		cut = cut - 1
+	end
+	return s:sub(idx + 1)
+end
+
 local function append_output(pos, s)
 	if s == nil or s == "" then return end
 	local h = hash(pos)
-	local t = (Output[h] or "") .. s
-	if #t > 4000 then t = t:sub(-4000) end
-	Output[h] = t
+	Output[h] = keep_last_lines((Output[h] or "") .. s, MAX_LINES)
 end
 
 local function clear_output(pos)
