@@ -1,4 +1,4 @@
-// NanoC example: monitor a TA4 autocrafter setup (direct node numbers)
+// NanoC example: monitor a TA4 autocrafter setup
 //
 // Supply two input chests via two pushers into an autocrafter, push the
 // result into an output chest. Raise text alarms on the terminal when:
@@ -8,15 +8,17 @@
 //
 // NanoC has 32-bit variables, so you address the techage node numbers
 // directly (no io_module/port mapping needed). Set them below to the numbers
-// shown in the blocks (or read them with "nanoc scan / nanoc catalog").
+// of your blocks (shown in the block's infotext).
 //
 //   chest_a / chest_b : input chests      (e.g. 4, 5)
 //   out_chest         : output chest      (e.g. 8)
 //   crafter           : autocrafter       (e.g. 6)
 //
-// Chest state (topic 131):   0 = empty, 1 = loaded, 2 = full
-// Machine state (topic 129): 1 run, 2 blocked, 3 standby, 5 fault,
-//                            6 stopped, 7 unloaded
+// ta_cmd(number, topic, a, b, c) sends a request and returns the numeric
+// result directly (synchronous). Topic values (BEP 005):
+//   chest state  (131): 0 = empty, 1 = loaded, 2 = full
+//   machine state(129): 1 run, 2 blocked, 3 standby, 5 fault,
+//                       6 stopped, 7 unloaded
 
 int32 chest_a = 4
 int32 chest_b = 5
@@ -26,40 +28,19 @@ int32 crafter = 6
 int32 cycle = 0
 
 while (1) {
-    // request the states (topic >= 128 is a data request)
-    ta_send(chest_a, 131, 0, 0, 0)
-    ta_send(chest_b, 131, 0, 0, 0)
-    ta_send(out_chest, 131, 0, 0, 0)
-    ta_send(crafter, 129, 0, 0, 0)
+    int32 a = ta_cmd(chest_a, 131, 0, 0, 0)
+    int32 b = ta_cmd(chest_b, 131, 0, 0, 0)
+    int32 o = ta_cmd(out_chest, 131, 0, 0, 0)
+    int32 c = ta_cmd(crafter, 129, 0, 0, 0)
 
-    sleep(500)                 // let the host process the requests
-
-    // evaluate the responses (arrive via the receive queue)
-    while (ta_recv() == 1) {
-        int32 num = ta_port()  // the node number that was asked
-        int32 topic = ta_topic()
-        int32 val = ta_payload(0)
-        if (topic == 131) {
-            if (val == 0) {
-                if (num == chest_a) {
-                    printf("ALARM: input chest A empty!\n")
-                } else if (num == chest_b) {
-                    printf("ALARM: input chest B empty!\n")
-                }
-            } else if (num == out_chest and val == 2) {
-                printf("ALARM: output chest full!\n")
-            }
-        } else if (topic == 129) {
-            if (val == 5) {
-                printf("ALARM: autocrafter FAULT (wrong items?)\n")
-            } else if (val == 2) {
-                printf("ALARM: autocrafter BLOCKED\n")
-            }
-        }
-    }
+    if (a == 0) printf("ALARM: input chest A empty!\n")
+    if (b == 0) printf("ALARM: input chest B empty!\n")
+    if (o == 2) printf("ALARM: output chest full!\n")
+    if (c == 5) printf("ALARM: autocrafter FAULT (wrong items?)\n")
+    if (c == 2) printf("ALARM: autocrafter BLOCKED\n")
 
     cycle = cycle + 1
-    if (mod(cycle, 20) == 0) {
-        printf("monitor alive, cycle %d\n", cycle)
-    }
+    if (mod(cycle, 10) == 0) printf("monitor alive, cycle %d\n", cycle)
+
+    sleep(1000)
 }

@@ -119,6 +119,8 @@ func sum(int32[] arr, int32 n) {
 | `ta_send(nummer, topic, a, b, c)` | Kommando/Anfrage an eine Techage-Knotennummer |
 | `ta_send_s(nummer, topic, "text")` | String-Kommando (z. B. für Displays) |
 | `ta_signal(nummer, 0\|1)` | Signal (on/off) senden |
+| `ta_cmd(nummer, topic, a, b, c)` | Synchrone Anfrage → Zahl |
+| `ta_cmd_s(nummer, topic, a, b, c)` | Synchrone Anfrage → String |
 | `ta_recv()` | 1, wenn ein Kommando ankam (sonst 0) |
 | `ta_port()`, `ta_topic()`, `ta_payload(i)` | das empfangene Kommando lesen |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | das empfangene Signal lesen |
@@ -149,22 +151,28 @@ adressiert andere Nodes **direkt über ihre Nummer** – kein I/O-Modul/Port-
 Mapping nötig (NanoC hat 32-Bit-Variablen).
 
 ```
-int32 kiste = 5                    // eine Techage-Knotennummer
+int32 kiste = 5                              // eine Techage-Knotennummer
 
-ta_send(kiste, 131, 0, 0, 0)       // Anfrage (topic >= 128)
-ta_send(kiste, 1, 1, 0, 0)         // Kommando (topic < 128)
-ta_send_s(kiste, 67, "text")       // String-Kommando (Displays)
+int32 zustand = ta_cmd(kiste, 131, 0, 0, 0)  // synchrone Anfrage -> Zahl
+str8  name$   = ta_cmd_s(kiste, 128, 0, 0, 0)// synchrone Anfrage -> String
 
+ta_send(kiste, 1, 1, 0, 0)                   // Kommando (topic < 128)
+ta_send_s(kiste, 67, "text")                 // String-Kommando (Displays)
+```
+
+`ta_cmd`/`ta_cmd_s` liefern die Antwort **direkt** (synchron, wie bei Techage
+`basic_terminal`) – kein `sleep`+`ta_recv`-Polling für Anfragen nötig.
+
+Für `ta_send`-Kommandos können Antworten/Kommandos weiterhin gelesen werden:
+```
 ta_recv()                          // 1, wenn Antwort/Kommando ankam
 int32 num = ta_port()              // die betroffene Knotennummer
 int32 topic = ta_topic()
 int32 val = ta_payload(0)
 ```
 
-`ta_port()` liefert die angefragte Knotennummer (bzw. bei eingehenden
-Kommandos die Nummer des Absenders). Eingehende Kommandos anderer Nodes werden
-an das Programm zugestellt. Topic `1` (run/stop) ist für den Controller
-reserviert.
+Eingehende Kommandos anderer Nodes werden an das Programm zugestellt. Topic
+`1` (run/stop) ist für den Controller reserviert.
 
 Beispiel: `examples/techage_monitor.nanoc`.
 

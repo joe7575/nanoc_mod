@@ -118,6 +118,8 @@ func sum(int32[] arr, int32 n) {
 | `ta_send(number, topic, a, b, c)` | Command/request to a Techage node number |
 | `ta_send_s(number, topic, "text")` | String command (e.g. for displays) |
 | `ta_signal(number, 0\|1)` | On/off signal |
+| `ta_cmd(number, topic, a, b, c)` | Synchronous request → numeric result |
+| `ta_cmd_s(number, topic, a, b, c)` | Synchronous request → string result |
 | `ta_recv()` | 1 if a command arrived (else 0) |
 | `ta_port()`, `ta_topic()`, `ta_payload(i)` | read the received command |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | read the received signal |
@@ -148,21 +150,28 @@ and addresses other nodes by their **number directly** — no I/O module/port
 mapping is needed (NanoC has 32-bit variables).
 
 ```
-int32 chest = 5                    // a techage node number
+int32 chest = 5                             // a techage node number
 
-ta_send(chest, 131, 0, 0, 0)       // request (topic >= 128)
-ta_send(chest, 1, 1, 0, 0)         // command (topic < 128)
-ta_send_s(chest, 67, "text")       // string command (displays)
+int32 state = ta_cmd(chest, 131, 0, 0, 0)   // synchronous request -> number
+str8  name$ = ta_cmd_s(chest, 128, 0, 0, 0) // synchronous request -> string
 
+ta_send(chest, 1, 1, 0, 0)                  // command (topic < 128)
+ta_send_s(chest, 67, "text")                // string command (displays)
+```
+
+`ta_cmd`/`ta_cmd_s` return the answer directly (synchronous, like techage's
+`basic_terminal`), so no `sleep`+`ta_recv` polling is needed for requests.
+
+For a `ta_send` command you may still read replies/commands via:
+```
 ta_recv()                          // 1 if a reply/command arrived
 int32 num = ta_port()              // the node number involved
 int32 topic = ta_topic()
 int32 val = ta_payload(0)
 ```
 
-`ta_port()` returns the node number you asked (or the sender's number for an
-incoming command). Incoming commands from other nodes are delivered to the
-program. Topic `1` (run/stop) is reserved for the controller itself.
+Incoming commands from other nodes are delivered to the program. Topic `1`
+(run/stop) is reserved for the controller itself.
 
 See `examples/techage_monitor.nanoc`.
 

@@ -309,7 +309,7 @@ minetest.register_node("nanoc:controller", {
 		if nanoc.dbg_is_paused(pos) then
 			return true   -- suspended by an external debugger
 		end
-		local ret = lib.run(pos, CYCLES_PER_TICK)
+		local ret = nanoc.run(pos, CYCLES_PER_TICK)
 		append_output(pos, lib.output(pos))
 		lib.output_clear(pos)
 		if nanoc.tech.update then
