@@ -281,6 +281,9 @@ minetest.register_node("nanoc:controller", {
 					minetest.check_player_privs(pname, { protection_bypass = true })) then
 				local tok = random_token()
 				meta:set_string("token", tok)
+				-- fallback for clients without text-field copy: log it
+				minetest.log("action", "[nanoc] external token for controller "
+					.. P2S(pos) .. " (owner " .. owner .. "): " .. tok)
 				-- show it in a selectable text field (chat has no copy on Linux)
 				minetest.show_formspec(pname, "nanoc:token@" .. P2S(pos),
 					"size[9,2.4]" ..
