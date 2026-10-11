@@ -1,8 +1,8 @@
 # NanoC – Manual
 
 NanoC is a small computer for Luanti/Minetest. Programs are written in a
-C-like language and are executed on the server. Through an I/O module it can
-control Techage/TechPack machines.
+C-like language and are executed on the server. It can control
+Techage/TechPack machines directly (by node number).
 
 ## Components
 
@@ -10,7 +10,6 @@ control Techage/TechPack machines.
 |---|---|
 | `nanoc:controller` | The computer (program editor + execution) |
 | `nanoc:terminal` | Live display of the controller's terminal output |
-| `nanoc:io_module` | Bridge to Techage/TechPack machines (ports ↔ node numbers) |
 
 ## Usage
 
@@ -111,9 +110,9 @@ func sum(int32[] arr, int32 n) {
 
 | Function | Meaning |
 |---|---|
-| `ta_send(port, topic, a, b, c)` | Send a command to Techage (`topic < 128`) |
-| `ta_send_s(port, topic, "text")` | Send a string command (e.g. for displays) |
-| `ta_signal(port, 0\|1)` | Send an on/off signal |
+| `ta_send(number, topic, a, b, c)` | Command/request to a Techage node number |
+| `ta_send_s(number, topic, "text")` | String command (e.g. for displays) |
+| `ta_signal(number, 0\|1)` | On/off signal |
 | `ta_recv()` | 1 if a command arrived (else 0) |
 | `ta_port()`, `ta_topic()`, `ta_payload(i)` | read the received command |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | read the received signal |
@@ -139,15 +138,28 @@ func sum(int32[] arr, int32 n) {
 
 ## Techage / TechPack
 
-1. Place a `nanoc:io_module` within 3 blocks of the controller.
-2. Right-click the I/O module: enter the base port and the Techage numbers,
-   then save.
-3. On the controller press **Stop**, then **Run** – this registers the port
-   mapping.
+The controller is itself a Techage node (its number is shown in the formspec)
+and addresses other nodes by their **number directly** — no I/O module/port
+mapping is needed (NanoC has 32-bit variables).
 
-Each port stands for a Techage/TechPack node number. `ta_send` with
-`topic < 128` sends a command, `topic >= 128` requests data (the reply lands in
-the receive queue and can be fetched with `ta_recv()`).
+```
+int32 chest = 5                    // a techage node number
+
+ta_send(chest, 131, 0, 0, 0)       // request (topic >= 128)
+ta_send(chest, 1, 1, 0, 0)         // command (topic < 128)
+ta_send_s(chest, 67, "text")       // string command (displays)
+
+ta_recv()                          // 1 if a reply/command arrived
+int32 num = ta_port()              // the node number involved
+int32 topic = ta_topic()
+int32 val = ta_payload(0)
+```
+
+`ta_port()` returns the node number you asked (or the sender's number for an
+incoming command). Incoming commands from other nodes are delivered to the
+program. Topic `1` (run/stop) is reserved for the controller itself.
+
+See `examples/techage_monitor.nanoc`.
 
 ## External terminal / debugger (Python client)
 

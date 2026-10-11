@@ -359,8 +359,48 @@ minetest.register_on_shutdown(function()
 	end
 end)
 
+-- Outgoing: forward commands from the VM directly to the target node number.
+-- (NanoC has 32-bit vars, so the program addresses techage numbers directly;
+--  no io_module/port indirection needed.)
+function nanoc.tech.update(cpu_pos)
+	if not minetest.global_exists("techage") then return end
+	local src = M(cpu_pos):get_string("node_number")
+	if src == "" then return end
+	local number, topic, payload, ctype
+	while true do
+		number, topic, payload, ctype = lib.techage_read_cmnd(cpu_pos)
+		if not number then break end
+		if ctype == 2 and type(payload) == "table" then
+			local chars = {}
+			for i = 1, #payload do chars[i] = string.char(payload[i] % 256) end
+			payload = table.concat(chars)
+		end
+		if topic < 128 then
+			techage.beduino_send_cmnd(src, number, topic, payload)
+		else
+			local sts, resp = techage.beduino_request_data(src, number, topic, payload)
+			if sts == 0 and resp ~= nil then
+				lib.techage_write_cmnd(cpu_pos, number, topic,
+					type(resp) == "table" and resp or { resp })
+			end
+		end
+	end
+	local val
+	while true do
+		number, val = lib.techage_read_signal(cpu_pos)
+		if not number then break end
+		techage.send_single(src, number, val == 1 and "on" or "off")
+	end
+end
+
+-- Incoming: deliver a command from another techage node to the VM.
+local function push_incoming(pos, src, topic, payload)
+	lib.techage_write_cmnd(pos, tonumber(src) or 0, tonumber(topic) or 0,
+		type(payload) == "table" and payload or { tonumber(payload) or 0 })
+end
+
 -- Techage interface: the controller can be queried/controlled like a machine.
--- send 1 (on/off = run/stop), request 128 (identify), 129 (state 1=run 6=stop).
+-- topic 1 = run/stop is reserved; other send topics go to the program.
 if nanoc.tech and nanoc.tech.register_node then
 	nanoc.tech.register_node({ "nanoc:controller" }, {
 		on_beduino_receive_cmnd = function(pos, src, topic, payload)
@@ -373,7 +413,14 @@ if nanoc.tech and nanoc.tech.register_node then
 				end
 				return 0
 			end
-			return 2
+			push_incoming(pos, src, topic, payload)
+			return 0
+		end,
+		on_recv_message = function(pos, src, topic, payload)
+			local t = tonumber(topic) or (topic == "on" and 1) or (topic == "off" and 0)
+			if t then
+				push_incoming(pos, src, t, payload)
+			end
 		end,
 		on_beduino_request_data = function(pos, src, topic, payload)
 			if topic == 128 then

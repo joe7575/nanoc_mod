@@ -1,8 +1,8 @@
 # NanoC – Handbuch
 
 NanoC ist ein kleiner Computer für Luanti/Minetest. Man schreibt Programme in
-einer C-ähnlichen Sprache, die auf dem Server ausgeführt werden. Über ein
-I/O-Modul lassen sich damit Techage-/TechPack-Maschinen steuern.
+einer C-ähnlichen Sprache, die auf dem Server ausgeführt werden. Damit lassen
+sich Techage-/TechPack-Maschinen direkt (per Knotennummer) steuern.
 
 ## Aufbau
 
@@ -10,7 +10,6 @@ I/O-Modul lassen sich damit Techage-/TechPack-Maschinen steuern.
 |---|---|
 | `nanoc:controller` | Der Computer (Programm-Editor + Ausführung) |
 | `nanoc:terminal` | Live-Anzeige der Terminal-Ausgabe des Controllers |
-| `nanoc:io_module` | Brücke zu Techage-/TechPack-Maschinen (Ports ↔ Node-Nummern) |
 
 ## Bedienung
 
@@ -112,9 +111,9 @@ func sum(int32[] arr, int32 n) {
 
 | Funktion | Bedeutung |
 |---|---|
-| `ta_send(port, topic, a, b, c)` | Kommando an Techage senden (`topic < 128`) |
-| `ta_send_s(port, topic, "text")` | String-Kommando (z. B. für Displays) |
-| `ta_signal(port, 0\|1)` | Signal (on/off) senden |
+| `ta_send(nummer, topic, a, b, c)` | Kommando/Anfrage an eine Techage-Knotennummer |
+| `ta_send_s(nummer, topic, "text")` | String-Kommando (z. B. für Displays) |
+| `ta_signal(nummer, 0\|1)` | Signal (on/off) senden |
 | `ta_recv()` | 1, wenn ein Kommando ankam (sonst 0) |
 | `ta_port()`, `ta_topic()`, `ta_payload(i)` | das empfangene Kommando lesen |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | das empfangene Signal lesen |
@@ -140,14 +139,29 @@ func sum(int32[] arr, int32 n) {
 
 ## Techage / TechPack
 
-1. `nanoc:io_module` im Umkreis von 3 Blöcken um den Controller platzieren.
-2. I/O-Modul rechtsklicken: Portbasis + Techage-Nummern eintragen, speichern.
-3. Am Controller **Stop**, dann **Run** – damit wird die Port-Zuordnung
-   registriert.
+Der Controller ist selbst ein Techage-Node (Nummer steht im Formular) und
+adressiert andere Nodes **direkt über ihre Nummer** – kein I/O-Modul/Port-
+Mapping nötig (NanoC hat 32-Bit-Variablen).
 
-Jeder Port steht für eine Techage-/TechPack-Node-Nummer. `ta_send` mit
-`topic < 128` schickt ein Kommando, `topic >= 128` fragt Daten an (Antwort
-landet in der Empfangs-Queue, abholbar mit `ta_recv()`).
+```
+int32 kiste = 5                    // eine Techage-Knotennummer
+
+ta_send(kiste, 131, 0, 0, 0)       // Anfrage (topic >= 128)
+ta_send(kiste, 1, 1, 0, 0)         // Kommando (topic < 128)
+ta_send_s(kiste, 67, "text")       // String-Kommando (Displays)
+
+ta_recv()                          // 1, wenn Antwort/Kommando ankam
+int32 num = ta_port()              // die betroffene Knotennummer
+int32 topic = ta_topic()
+int32 val = ta_payload(0)
+```
+
+`ta_port()` liefert die angefragte Knotennummer (bzw. bei eingehenden
+Kommandos die Nummer des Absenders). Eingehende Kommandos anderer Nodes werden
+an das Programm zugestellt. Topic `1` (run/stop) ist für den Controller
+reserviert.
+
+Beispiel: `examples/techage_monitor.nanoc`.
 
 ## Externes Terminal / Debugger (Python-Client)
 

@@ -1,4 +1,4 @@
-// NanoC example: monitor a TA4 autocrafter setup
+// NanoC example: monitor a TA4 autocrafter setup (direct node numbers)
 //
 // Supply two input chests via two pushers into an autocrafter, push the
 // result into an output chest. Raise text alarms on the terminal when:
@@ -6,41 +6,47 @@
 //   2) the output chest runs full
 //   3) the autocrafter is blocked or in fault state
 //
-// I/O module port mapping (configure in-game, right-click the io_module):
-//   port 0 -> input chest A      (techage number, e.g. 4)
-//   port 1 -> input chest B      (e.g. 5)
-//   port 2 -> output chest       (e.g. 8)
-//   port 3 -> autocrafter        (e.g. 6)
+// NanoC has 32-bit variables, so you address the techage node numbers
+// directly (no io_module/port mapping needed). Set them below to the numbers
+// shown in the blocks (or read them with "nanoc scan / nanoc catalog").
 //
-// State values (topic 131, chest):   0 = empty, 1 = loaded, 2 = full
-// State values (topic 129, machine): 1 = run, 2 = blocked, 3 = standby,
-//                                    5 = fault, 6 = stopped, 7 = unloaded
+//   chest_a / chest_b : input chests      (e.g. 4, 5)
+//   out_chest         : output chest      (e.g. 8)
+//   crafter           : autocrafter       (e.g. 6)
+//
+// Chest state (topic 131):   0 = empty, 1 = loaded, 2 = full
+// Machine state (topic 129): 1 run, 2 blocked, 3 standby, 5 fault,
+//                            6 stopped, 7 unloaded
+
+int32 chest_a = 4
+int32 chest_b = 5
+int32 out_chest = 8
+int32 crafter = 6
 
 int32 cycle = 0
 
 while (1) {
-    // 1) request the states (topic >= 128 is a data request)
-    ta_send(0, 131, 0, 0, 0)   // input chest A state
-    ta_send(1, 131, 0, 0, 0)   // input chest B state
-    ta_send(2, 131, 0, 0, 0)   // output chest state
-    ta_send(3, 129, 0, 0, 0)   // autocrafter state
+    // request the states (topic >= 128 is a data request)
+    ta_send(chest_a, 131, 0, 0, 0)
+    ta_send(chest_b, 131, 0, 0, 0)
+    ta_send(out_chest, 131, 0, 0, 0)
+    ta_send(crafter, 129, 0, 0, 0)
 
     sleep(500)                 // let the host process the requests
 
-    // 2) evaluate the responses (arrive via the receive queue)
+    // evaluate the responses (arrive via the receive queue)
     while (ta_recv() == 1) {
-        int32 port = ta_port()
+        int32 num = ta_port()  // the node number that was asked
         int32 topic = ta_topic()
         int32 val = ta_payload(0)
         if (topic == 131) {
             if (val == 0) {
-                // input chest empty -> feed it
-                if (port == 0) {
+                if (num == chest_a) {
                     printf("ALARM: input chest A empty!\n")
-                } else if (port == 1) {
+                } else if (num == chest_b) {
                     printf("ALARM: input chest B empty!\n")
                 }
-            } else if (port == 2 and val == 2) {
+            } else if (num == out_chest and val == 2) {
                 printf("ALARM: output chest full!\n")
             }
         } else if (topic == 129) {
