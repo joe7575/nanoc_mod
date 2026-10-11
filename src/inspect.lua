@@ -36,8 +36,21 @@ for _, k in ipairs({ "RUNNING", "BLOCKED", "STANDBY", "NOPOWER", "FAULT",
 	end
 end
 
+-- TA4 node names come in two flavours: "techage:ta4_pusher" and
+-- "techage:chest_ta4" -> match "ta4" anywhere.
 local function is_ta4(name)
-	return name:find("ta4_", 1, true) ~= nil
+	return name:find("ta4", 1, true) ~= nil
+end
+
+local function clean(s)
+	if not s then return nil end
+	s = s:gsub("%c", "")
+	s = s:gsub("^%s+", ""):gsub("%s+$", "")
+	return s ~= "" and s or nil
+end
+
+local function label(name)
+	return (name:gsub("^%a+:", ""):gsub("_", " "))
 end
 
 local function collect_names()
@@ -53,7 +66,7 @@ end
 local function inventory_snapshot(pos)
 	local inv = minetest.get_meta(pos):get_inventory()
 	if not inv then
-		return nil
+		return nil, nil
 	end
 	local lists = {}
 	local any = false
@@ -70,7 +83,11 @@ local function inventory_snapshot(pos)
 			any = true
 		end
 	end
-	return any and lists or nil
+	local inv_state
+	if inv:get_size("main") > 0 then
+		inv_state = techage.get_inv_state(inv, "main")   -- empty/loaded/full
+	end
+	return (any and lists or nil), inv_state
 end
 
 local function node_state(pos)
@@ -87,44 +104,56 @@ function nanoc.inspect(center, radius)
 	local pos2 = { x = center.x + radius, y = center.y + radius, z = center.z + radius }
 
 	local nodes = {}
-	local by_key = {}
 	local names = collect_names()
 	if #names > 0 then
 		for _, pos in ipairs(minetest.find_nodes_in_area(pos1, pos2, names)) do
 			local node = minetest.get_node(pos)
 			local meta = minetest.get_meta(pos)
-			local ndef = minetest.registered_nodes[node.name]
-			local entry = {
+			local inv, inv_state = inventory_snapshot(pos)
+			local number = meta:get_string("node_number")
+			nodes[#nodes + 1] = {
+				id = number ~= "" and number or P2S(pos),
 				pos = { x = pos.x, y = pos.y, z = pos.z },
 				name = node.name,
-				description = ndef and ndef.description or "",
-				number = meta:get_string("node_number"),
+				label = label(node.name),
+				infotext = clean(meta:get_string("infotext")),
+				number = number,
 				owner = meta:get_string("owner"),
 				param2 = node.param2,
 				state = node_state(pos),
-				inv = inventory_snapshot(pos),
+				inv_state = inv_state,
+				inv = inv,
 			}
-			nodes[#nodes + 1] = entry
-			by_key[P2S(pos)] = entry
 		end
 	end
 
-	-- Edges: follow tube lines; fall back to direct ta4 neighbours.
+	-- Edges: follow tube lines; fall back to direct TA4 neighbours.
 	local edges = {}
+	local seen = {}
 	local Tube = techage.Tube
 	for _, entry in ipairs(nodes) do
 		local pos = entry.pos
 		for dir = 1, 6 do
 			local npos = Tube:get_connected_node_pos(pos, dir)
-			if npos then
-				local adjacent = tubelib2.get_pos(pos, dir)
-				local peer = by_key[P2S(npos)]
-				local via = (not vector.equals(npos, adjacent)) and "tube" or "adjacent"
-				if peer and not vector.equals(npos, pos) then
-					edges[#edges + 1] = {
-						from = entry.number, to = peer.number,
-						dir = dir, via = via,
-					}
+			if npos and not vector.equals(npos, pos) then
+				local peer_node = minetest.get_node_or_nil(npos)
+				if peer_node and peer_node.name:find("techage:", 1, true) then
+					local peer_meta = minetest.get_meta(npos)
+					local peer_num = peer_meta:get_string("node_number")
+					local adjacent = tubelib2.get_pos(pos, dir)
+					local via = (not vector.equals(npos, adjacent)) and "tube" or "adjacent"
+					local key = entry.id .. ">" .. (peer_num ~= "" and peer_num or P2S(npos)) .. ":" .. via
+					if not seen[key] then
+						seen[key] = true
+						edges[#edges + 1] = {
+							from = entry.id,
+							to = peer_num ~= "" and peer_num or P2S(npos),
+							to_name = peer_node.name,
+							to_pos = { x = npos.x, y = npos.y, z = npos.z },
+							dir = dir,
+							via = via,
+						}
+					end
 				end
 			end
 		end
