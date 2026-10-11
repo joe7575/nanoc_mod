@@ -33,14 +33,26 @@ while (1) {
     int32 o = ta_cmd(out_chest, 131, 0, 0, 0)
     int32 c = ta_cmd(crafter, 129, 0, 0, 0)
 
-    if (a == 0) printf("ALARM: input chest A empty!\n")
-    if (b == 0) printf("ALARM: input chest B empty!\n")
-    if (o == 2) printf("ALARM: output chest full!\n")
-    if (c == 5) printf("ALARM: autocrafter FAULT (wrong items?)\n")
-    if (c == 2) printf("ALARM: autocrafter BLOCKED\n")
+    if (a == 0) {
+        printf("ALARM: input chest A empty!\n")
+    }
+    if (b == 0) {
+        printf("ALARM: input chest B empty!\n")
+    }
+    if (o == 2) {
+        printf("ALARM: output chest full!\n")
+    }
+    if (c == 5) {
+        printf("ALARM: autocrafter FAULT (wrong items?)\n")
+    }
+    if (c == 2) {
+        printf("ALARM: autocrafter BLOCKED\n")
+    }
 
     cycle = cycle + 1
-    if (mod(cycle, 10) == 0) printf("monitor alive, cycle %d\n", cycle)
+    if ((cycle % 10) == 0) {
+        printf("monitor alive, cycle %d\n", cycle)
+    }
 
     sleep(1000)
 }
