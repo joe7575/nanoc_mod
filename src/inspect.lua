@@ -114,6 +114,8 @@ function nanoc.inspect(center, radius)
 			local meta = minetest.get_meta(pos)
 			local inv, inv_state = inventory_snapshot(pos)
 			local number = meta:get_string("node_number")
+			local pull_dir = meta:get_int("pull_dir")
+			local push_dir = meta:get_int("push_dir")
 			nodes[#nodes + 1] = {
 				id = number ~= "" and number or P2S(pos),
 				pos = { x = pos.x, y = pos.y, z = pos.z },
@@ -126,6 +128,8 @@ function nanoc.inspect(center, radius)
 				state = node_state(pos),
 				inv_state = inv_state,
 				inv = inv,
+				pull_dir = pull_dir > 0 and pull_dir or nil,
+				push_dir = push_dir > 0 and push_dir or nil,
 			}
 		end
 	end
@@ -162,11 +166,48 @@ function nanoc.inspect(center, radius)
 		end
 	end
 
+	-- Directed flow for nodes that push (pushers store pull_dir/push_dir).
+	local flow = {}
+	local function peer_info(npos)
+		local n = minetest.get_node_or_nil(npos)
+		if not n then return nil end
+		local num = minetest.get_meta(npos):get_string("node_number")
+		return {
+			id = num ~= "" and num or P2S(npos),
+			name = n.name,
+			pos = { x = npos.x, y = npos.y, z = npos.z },
+		}
+	end
+	for _, entry in ipairs(nodes) do
+		local pos = entry.pos
+		if entry.pull_dir then
+			local peer = Tube:get_connected_node_pos(pos, entry.pull_dir)
+			if peer and not vector.equals(peer, pos) then
+				local pi = peer_info(peer)
+				if pi then
+					flow[#flow + 1] = { from = pi.id, from_name = pi.name,
+						to = entry.id, role = "pull", dir = entry.pull_dir }
+				end
+			end
+		end
+		if entry.push_dir then
+			local peer = Tube:get_connected_node_pos(pos, entry.push_dir)
+			if peer and not vector.equals(peer, pos) then
+				local pi = peer_info(peer)
+				if pi then
+					flow[#flow + 1] = { from = entry.id, to = pi.id,
+						to_name = pi.name, role = "push", dir = entry.push_dir }
+				end
+			end
+		end
+	end
+
 	return {
 		center = { x = center.x, y = center.y, z = center.z },
 		radius = radius,
 		nodes = nodes,
 		edges = edges,
+		flow = flow,
 	}
 end
 
