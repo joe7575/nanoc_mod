@@ -1,5 +1,9 @@
 # NanoC settings
 
+# Bridge bind address. Default 127.0.0.1 = local only. For the test phase you
+# can reach it from another PC in your LAN by setting 0.0.0.0 (plaintext, token
+# only - do NOT forward this port on the router; add TLS before exposing it).
+
 nanoc_bridge_enable (NanoC: external TCP bridge) bool false
 nanoc_bridge_bind (NanoC: bridge bind address) string 127.0.0.1
 nanoc_bridge_port (NanoC: bridge TCP port) int 41100
@@ -8,3 +12,15 @@ nanoc_bridge_max_clients (NanoC: max concurrent bridge clients) int 8
 nanoc_bridge_handshake_timeout (NanoC: seconds to authenticate a client) int 5
 nanoc_bridge_cmd_rate (NanoC: max debug commands per second per client) int 100
 nanoc_bridge_idle_timeout (NanoC: close idle clients after N seconds, 0=off) int 0
+
+# Adaptive CPU budget: the controller measures how long a tick really takes and
+# adjusts the VM instruction budget to stay near the time target. No hard limit,
+# no penalty - the program just resumes next tick. Idle servers get the full
+# budget; more players / a lagging server reduce it.
+
+nanoc_cpu_tick_ms (NanoC: target CPU time per controller tick in ms, idle server) float 8.0
+nanoc_cpu_tick_min_ms (NanoC: minimum CPU time per controller tick in ms) float 1.0
+nanoc_cpu_player_scale (NanoC: scale the CPU budget down by the number of players) bool true
+nanoc_vm_cycles_start (NanoC: initial VM instructions per tick) int 20000
+nanoc_vm_cycles_min (NanoC: minimum VM instructions per tick) int 500
+nanoc_vm_cycles_max (NanoC: maximum VM instructions per tick) int 100000

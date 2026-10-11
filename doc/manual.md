@@ -14,7 +14,11 @@ Techage/TechPack machines directly (by node number).
 Optionally, a `termlib:terminal1` (from the `termlib` mod) can serve as the
 display **and** keyboard instead of `nanoc:terminal` (connect it as usual:
 wield, left-click the controller, place, `@connect`). Typed commands arrive in
-the program via `key()`.
+the program via `key()`. The controller's output is passed to termlib, so
+control characters (`\a \b \t \n \r`) and escape sequences (`\27…`, e.g.
+`\27\1` clear, `\27\2<row>`, `\27\3<font>`, `\27\4<cmd>\n`, `\27\5<1|2>`,
+`\27\6<pos><row>`, `\27\7`) work directly – see
+`examples/termlib_demo.nanoc`.
 
 ## Usage
 
@@ -72,6 +76,27 @@ buf[0] = count
 Operators: `+ - * / % mod`, `& | ^ << >>`, `== != < <= > >=`, `and or not`,
 `++ --`. Strings can be concatenated with `+` and compared with `== < >`.
 
+### Strings and escape sequences
+
+String literals support escape sequences (decoded at compile time):
+
+| Escape | Meaning |
+| ------ | ------- |
+| `\n` | newline |
+| `\t` | tab |
+| `\r` | carriage return |
+| `\a` | BEL (0x07) |
+| `\b` | backspace |
+| `\f` | form feed |
+| `\v` | vertical tab |
+| `\e` | ESC (0x1B) |
+| `\\` | literal backslash |
+| `\"` `\'` | quote |
+| `\xHH` | hex byte, e.g. `\x1b` |
+| `\ddd` | decimal byte, e.g. `\27` |
+
+There are **no** C-style octal escapes: `\ddd` is decimal, like in Lua.
+
 ### Control flow
 
 ```
@@ -124,6 +149,7 @@ func sum(int32[] arr, int32 n) {
 | `ta_port()`, `ta_topic()`, `ta_payload(i)` | read the received command |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | read the received signal |
 | `key()` | next key as a number, or -1 |
+| `log("text")` | debug/log message to the external debugger (VS Code Debug Console); no-op in-game |
 | `sleep(ms)` | pause the program for `ms` milliseconds |
 | `millis()` | milliseconds since program start |
 
@@ -137,11 +163,36 @@ func sum(int32[] arr, int32 n) {
   **late**.
 - **`millis()`** returns real milliseconds and is independent of the server
   step. It can be used to measure time without pausing.
-- Execution runs in **cycle budgets**: each timer tick the controller executes
-  up to 50,000 instructions and then yields. Several controllers therefore run
-  one after another (cooperatively), not truly in parallel.
+- Execution runs in **adaptive cycle budgets**: each timer tick the controller
+  executes VM instructions for a short time slice and then yields, so several
+  controllers run cooperatively, not truly in parallel.
 - To "do something every second", `sleep(1000)` inside a `while (1)` loop is
   the simple way; for finer behaviour without pausing, use `millis()`.
+
+## CPU budget (server owners)
+
+NanoC does not enforce a hard command/RAM limit and never penalises the owner.
+Instead each controller measures how long a tick really takes and adapts its VM
+instruction budget to stay near a **time target** (`nanoc_cpu_tick_ms`, default
+8 ms). A tick that finishes early gets a larger budget next time; a slow tick
+gets a smaller one. An idle server thus gives more compute, a busy one less.
+On top of that, a techage-heavy loop (`ta_cmd`/`ta_send`) that runs longer than
+the budget simply **yields and continues in the next tick** - no error, no
+damage. When the budget throttles a program, an info message is written to the
+debug terminal (channel 4), at most once per second per controller.
+
+Settings (minetest.conf / `settingtypes.txt`):
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `nanoc_cpu_tick_ms` | `8.0` | target CPU time per controller tick (ms) |
+| `nanoc_cpu_tick_min_ms` | `1.0` | never go below this per tick |
+| `nanoc_cpu_player_scale` | `true` | divide the budget by the number of players |
+| `nanoc_vm_cycles_start` | `20000` | initial VM instructions per tick |
+| `nanoc_vm_cycles_min` / `_max` | `500` / `100000` | instruction budget bounds |
+
+Set `nanoc_cpu_player_scale = false` for a fixed budget, or lower
+`nanoc_cpu_tick_ms` on a heavily loaded server (e.g. `3.0`).
 
 ## Techage / TechPack
 
@@ -204,8 +255,26 @@ techage can switch it on/off (`topic 1`) and read its state (`topic 129`).
 See `examples/techage_monitor.nanoc` for a full monitoring example (input
 chests empty, output chest full, autocrafter blocked/fault).
 
-The bridge only listens on localhost by default. Never expose it to the
-internet without a tunnel/TLS – the token is the only protection.
+### Test phase: access from the LAN
+
+To use the terminal/debugger from a second PC while the game server runs on
+e.g. `192.168.178.246`, set in `minetest.conf`:
+
+```
+nanoc_bridge_enable = true
+nanoc_bridge_bind = 0.0.0.0
+nanoc_bridge_port = 41100
+```
+
+then connect with `--host 192.168.178.246 --port 41100 --token <TOKEN>`. Only do
+this in a **trusted LAN**: `0.0.0.0` makes the port reachable by every device in
+your network, and the link is **plaintext** (TLS is not implemented yet). The
+token is the only protection, and it can upload/download programs. Do **not**
+forward this port on the router and do not run it on a public/VPS server — add
+TLS first. Keep the default `127.0.0.1` when the client runs on the same machine
+as the server.
+
+Never expose the bridge to the internet without a tunnel/TLS.
 
 ## Persistence
 

@@ -25,11 +25,15 @@ if not minetest.global_exists("termlib") or not termlib.term then
 end
 
 local M = minetest.get_meta
-local Term = termlib.Term
+local term = termlib.term
 
 -- Input: a command typed on the terminal -> the NanoC VM input buffer.
-local orig_send_to_cpu = Term.send_to_cpu
-function Term.send_to_cpu(self, pos, mem, cpu_pos, node, command)
+-- termlib's backends (techage/beduino/...) override send_to_cpu on the
+-- *instance* (`term.send_to_cpu`), so we must wrap that method too, otherwise
+-- our class-level override would be shadowed and F-keys would fall through to
+-- the backend's default (which returns false).
+local orig_send_to_cpu = term.send_to_cpu
+term.send_to_cpu = function(self, pos, mem, cpu_pos, node, command)
 	if node and node.name == "nanoc:controller" then
 		nanoc.lib.push_key(cpu_pos, (command or "") .. "\n")
 		return true
@@ -47,7 +51,6 @@ function nanoc.termlib_send(cpu_pos, text)
 	if not mem.trm_connected then
 		return
 	end
-	local term = termlib.term
 	if term:put_string(term_pos, mem, text) then
 		M(term_pos):set_string("formspec", term:formspec(term_pos))
 	end

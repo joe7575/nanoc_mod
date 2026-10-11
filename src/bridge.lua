@@ -42,7 +42,7 @@ local CMD_RATE = tonumber(minetest.settings:get("nanoc_bridge_cmd_rate")) or 100
 
 local MAGIC0, MAGIC1 = 0x4E, 0x43
 local VERSION = 1
-local CH_DEBUG, CH_TERM, CH_CTRL = 1, 2, 3
+local CH_DEBUG, CH_TERM, CH_CTRL, CH_LOG = 1, 2, 3, 4
 
 local CMD = { ATTACH = 1, DETACH = 2, STATE = 3, BP_SET = 4, BP_CLR = 5,
 	BP_CLR_ALL = 6, HALT = 7, CONTINUE = 8, STEP = 9, STEP_OVER = 10,
@@ -238,7 +238,10 @@ local function handle_debug(c, payload)
 		resp = { cmd, STS.OK }
 	elseif cmd == CMD.STEP or cmd == CMD.STEP_OVER or cmd == CMD.STEP_OUT then
 		local mode = (cmd == CMD.STEP) and 0 or ((cmd == CMD.STEP_OVER) and 1 or 2)
-		if lib.step_mode then
+		if nanoc.step then
+			-- dispatches Lua-backed xfuncs (log, ta_cmd) and flushes output
+			nanoc.step(c.pos, mode)
+		elseif lib.step_mode then
 			lib.step_mode(c.pos, mode, 100000)
 		else
 			lib.step(c.pos)
@@ -351,6 +354,19 @@ function nanoc.bridge.on_output(pos, text)
 	end
 end
 
+-- Program log messages (NanoC built-in log()): shown in debugger front ends
+-- (e.g. the VS Code Debug Console), not in the terminal screen.
+function nanoc.bridge.log(pos, text)
+	if not text or text == "" then
+		return
+	end
+	for _, c in pairs(clients) do
+		if c.authed and same_pos(c.pos, pos) then
+			send_frame(c, CH_LOG, text)
+		end
+	end
+end
+
 function nanoc.bridge.on_halt(pos, reason, line, pc)
 	for _, c in pairs(clients) do
 		if c.authed and same_pos(c.pos, pos) then
@@ -422,7 +438,19 @@ minetest.register_globalstep(function(dtime)
 						end
 						handle_debug(c, f.payload)
 					elseif f.channel == CH_TERM then
-						if c.is_owner then
+						-- Terminal input is not a debug control operation, so any
+						-- authenticated client may type (like the in-game
+						-- terminal). Rate-limited like the debug channel.
+						if (t - c.cmd_window) > 1 then
+							c.cmd_window = t
+							c.cmd_count = 0
+						end
+						c.cmd_count = c.cmd_count + 1
+						if c.cmd_count > CMD_RATE then
+							alive = false   -- input flood
+							break
+						end
+						if c.pos then
 							lib.push_key(c.pos, f.payload)
 						end
 					end

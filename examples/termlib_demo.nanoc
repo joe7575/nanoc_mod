@@ -1,0 +1,155 @@
+// NanoC example: termlib terminal feature tour
+//
+// Drives a termlib terminal as the NanoC controller's display + keyboard and
+// demonstrates every terminal feature.
+//
+// Setup:
+//   1. Place a NanoC controller and a termlib terminal.
+//   2. Wield the terminal, left-click the controller (preconnect), place it,
+//      open it and type:  @connect
+//   3. Paste this program into the controller, press "Save+Compile", "Run".
+//
+// The program's printf output is written to the terminal; key() reads the
+// keyboard (one byte at a time). Termlib interprets control characters and
+// escape sequences inside the output.
+//
+// Control characters (see termlib/api.lua):
+//   \a  bell            \b  clear screen        \t  tab (to next multiple of 8)
+//   \n  new line        \r  rewrite current line
+//
+// Escape sequences (ESC = \27 = \e):
+//   ESC 1             clear screen
+//   ESC 2 <row>       move cursor to <row> (1..20) and clear that row
+//   ESC 3 <font>      0 = normal, 1 = mono
+//   ESC 4 <cmd>\n      run a terminal command (e.g. @help, @cls, @set)
+//   ESC 5 <1|2>        suppress (1) / force (2) terminal output
+//   ESC 6 <pos><row>   insert the following text at <pos> in <row>
+//   ESC 7             clear current line and move cursor up
+//
+// Internal terminal commands (handled by termlib itself):
+//   @cls @publ @prot @priv @set @connect @disconnect @help
+//
+// Function keys F1..F8 send the byte values 128..135 to the program.
+
+int32 phase = 0
+int32 swallow = 0
+
+while (1) {
+    if (phase == 0) {
+        // ESC 1: clear screen. ESC 3 0: normal font for one line, then back
+        // to mono (fixed) - termlib's default.
+        printf("\27\1")
+        printf("\27\3%c", 0)
+        printf("this line is normal (proportional) font\n")
+        printf("\27\3\1")
+        printf("termlib feature tour - NanoC drives the terminal\n")
+        printf("  control chars + ESC 1/2/3/4/5/6/7 + keyboard input\n")
+        printf("watch the screen...\n")
+    }
+    if (phase == 1) {
+        // Control characters: bell, tab stops, carriage return.
+        printf("\27\1")
+        printf("Control characters:\n")
+        printf("\a")
+        printf("A\tB\tC\tD tab stops at columns 9/17/25\n")
+        printf("progress:  0%%\r")
+        printf("progress: 50%%\r")
+        printf("progress:100%%\n")
+    }
+    if (phase == 2) {
+        // \b (backspace) clears the whole screen, like ESC 1.
+        printf("\b")
+        printf("The screen was cleared with \\b (control char 8)\n")
+    }
+    if (phase == 3) {
+        // ESC 2 <row>: place text on specific rows.
+        printf("\27\1")
+        printf("\27\2%c", 3)
+        printf("This is row 3, written with ESC 2")
+        printf("\27\2%c", 8)
+        printf("This is row 8, written with ESC 2\n")
+    }
+    if (phase == 4) {
+        // ESC 3 <font>: switch to normal and back to mono (the default).
+        printf("\27\1")
+        printf("\27\3%c", 0)
+        printf("normal (proportional) font\n")
+        printf("\27\3\1")
+        printf("mono (fixed) font\n")
+    }
+    if (phase == 5) {
+        // ESC 5 <1|2>: suppress output, then force a refresh.
+        printf("\27\1")
+        printf("before suppress\n")
+        printf("\27\5\1")
+        printf("written while suppressed (invisible until forced)\n")
+        printf("\27\5\2")
+        printf("output forced\n")
+    }
+    if (phase == 6) {
+        // ESC 7: clear the current line and move the cursor up.
+        printf("\27\1")
+        printf("line A\n")
+        printf("line B - will be redrawn\n")
+        printf("\27\7")
+        printf("line B replaced using ESC 7\n")
+    }
+    if (phase == 7) {
+        // ESC 6 <pos><row>: insert text into an existing row.
+        printf("\27\1")
+        printf("\27\2%c", 5)
+        printf("ABCDEFGHIJ\n")
+        printf("\27\6%c%c", 5, 5)
+        printf("xyz\n")
+    }
+    if (phase == 8) {
+        // ESC 4 <cmd>\n: run a terminal command. @help clears the screen and
+        // prints the termlib help text.
+        printf("\27\4@help\n")
+    }
+    if (phase == 9) {
+        // ESC 4 + @set: program function buttons (handled by the terminal).
+        printf("\27\4@set F1 CLS @cls\n")
+        printf("\27\4@set F2 HELP @help\n")
+        printf("\27\4@set F3 PUBL @publ\n")
+        printf("\27\4@set F4 PRIV @priv\n")
+        printf("\27\1")
+        printf("Programmed F1=CLS F2=HELP F3=PUBL F4=PRIV via '@set'.\n")
+        printf("F1..F4 now run terminal commands; F5..F8 reach the program.\n")
+        printf("Type on the terminal keyboard now. Enter text: ")
+    }
+    if (phase >= 10) {
+        // Interactive: drain the keyboard buffer, echo, react to Enter/F-keys.
+        int32 k = key()
+        while (k >= 0) {
+            if (swallow == 1) {
+                swallow = 0
+            } else {
+                if (k == 10) {
+                    printf("\nEnter pressed - type again: ")
+                    log("Enter pressed\n")
+                } else {
+                    if (k >= 128 and k <= 135) {
+                        swallow = 1
+                        printf("\nfunction key F%d received\n", k - 127)
+                        printf("Enter text: ")
+                    } else {
+                        if (k >= 32) {
+                            printf("%c", k)
+                        } else {
+                            printf("<%d>", k)
+                        }
+                    }
+                }
+            }
+            k = key()
+        }
+    }
+
+    if (phase < 10) {
+        phase = phase + 1
+        sleep(1800)
+    } else {
+        sleep(100)
+    }
+}
