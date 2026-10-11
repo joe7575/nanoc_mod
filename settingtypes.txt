@@ -4,3 +4,7 @@ nanoc_bridge_enable (NanoC: external TCP bridge) bool false
 nanoc_bridge_bind (NanoC: bridge bind address) string 127.0.0.1
 nanoc_bridge_port (NanoC: bridge TCP port) int 41100
 nanoc_bridge_poll (NanoC: bridge poll interval in seconds) float 0.1
+nanoc_bridge_max_clients (NanoC: max concurrent bridge clients) int 8
+nanoc_bridge_handshake_timeout (NanoC: seconds to authenticate a client) int 5
+nanoc_bridge_cmd_rate (NanoC: max debug commands per second per client) int 100
+nanoc_bridge_idle_timeout (NanoC: close idle clients after N seconds, 0=off) int 0

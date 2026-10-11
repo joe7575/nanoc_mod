@@ -57,7 +57,7 @@ local function label(name)
 end
 
 local function collect_names()
-	local names = {}
+	local names = { "nanoc:controller" }
 	for name in pairs(techage.NodeDef) do
 		if is_ta4(name) then
 			names[#names + 1] = name

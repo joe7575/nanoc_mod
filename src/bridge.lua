@@ -34,6 +34,11 @@ end
 local BIND = minetest.settings:get("nanoc_bridge_bind") or "127.0.0.1"
 local PORT = tonumber(minetest.settings:get("nanoc_bridge_port")) or 41100
 local POLL = tonumber(minetest.settings:get("nanoc_bridge_poll")) or 0.1
+-- Abuse protection
+local MAX_CLIENTS = tonumber(minetest.settings:get("nanoc_bridge_max_clients")) or 8
+local HANDSHAKE_TIMEOUT = tonumber(minetest.settings:get("nanoc_bridge_handshake_timeout")) or 5
+local IDLE_TIMEOUT = tonumber(minetest.settings:get("nanoc_bridge_idle_timeout")) or 0
+local CMD_RATE = tonumber(minetest.settings:get("nanoc_bridge_cmd_rate")) or 100
 
 local MAGIC0, MAGIC1 = 0x4E, 0x43
 local VERSION = 1
@@ -357,22 +362,41 @@ end
 -- ---- polling ----
 
 local acc = 0
+local function now() return minetest.get_gametime() end
+
 minetest.register_globalstep(function(dtime)
 	acc = acc + dtime
 	if acc < POLL then
 		return
 	end
 	acc = 0
+	local t = now()
 
 	while true do
 		local id = lib.net_accept(server)
 		if not id then break end
-		clients[id] = { id = id, buf = "", session = 0, pos = nil, authed = false }
+		local count = 0
+		for _ in pairs(clients) do count = count + 1 end
+		if count >= MAX_CLIENTS then
+			lib.net_close(id)          -- refuse: too many clients
+		else
+			clients[id] = { id = id, buf = "", session = 0, pos = nil, authed = false,
+				connected_at = t, last_activity = t, cmd_window = t, cmd_count = 0 }
+		end
 	end
 
 	local dead = {}
 	for id, c in pairs(clients) do
-		local alive = read_available(c)
+		local alive = true
+		if not c.authed and (t - c.connected_at) > HANDSHAKE_TIMEOUT then
+			alive = false               -- did not authenticate in time
+		end
+		if alive then
+			alive = read_available(c)
+		end
+		if alive and IDLE_TIMEOUT > 0 and c.authed and (t - c.last_activity) > IDLE_TIMEOUT then
+			alive = false
+		end
 		if alive then
 			local frames = parse_frames(c)
 			if not frames then
@@ -380,12 +404,22 @@ minetest.register_globalstep(function(dtime)
 			else
 				for _, f in ipairs(frames) do
 					c.session = f.session
+					c.last_activity = t
 					if not c.authed then
 						if f.channel ~= CH_CTRL or not do_handshake(c, f.payload) then
 							alive = false
 							break
 						end
 					elseif f.channel == CH_DEBUG then
+						if (t - c.cmd_window) > 1 then
+							c.cmd_window = t
+							c.cmd_count = 0
+						end
+						c.cmd_count = c.cmd_count + 1
+						if c.cmd_count > CMD_RATE then
+							alive = false   -- command flood
+							break
+						end
 						handle_debug(c, f.payload)
 					elseif f.channel == CH_TERM then
 						if c.is_owner then

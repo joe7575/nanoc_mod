@@ -157,8 +157,9 @@ Ein Controller ist vom PC aus per TCP erreichbar:
    `minetest.conf`). Sie lauscht standardmäßig auf `127.0.0.1:41100`
    (`nanoc_bridge_bind` / `nanoc_bridge_port`). Keine extra Abhängigkeit – die
    Sockets stecken in `nanoclib`.
-2. **Im Spiel**: Controller öffnen; unten steht der „External token". Der
-   Button `New` erzeugt einen neuen.
+2. **Im Spiel**: Controller öffnen und **Token** drücken – nur der Owner (oder
+   ein Spieler mit `protection_bypass`) darf das; der neue Token geht in dessen
+   Chat. Nur an vertrauenswürdige Personen weitergeben (z. B. Moderator).
 3. **Am PC**:
    ```bash
    python -m nanoc_client.cli --host 127.0.0.1 --port 41100 --token <TOKEN>
@@ -166,8 +167,16 @@ Ein Controller ist vom PC aus per TCP erreichbar:
    Kommandos: `state`, `attach`, `bp <line>`, `step`, `cont`, `vars`, `key`,
    `help`.
 
-Die Bridge lauscht standardmäßig nur auf localhost. Nie ohne Tunnel/TLS ins
-Internet öffnen – der Token ist der einzige Schutz.
+Der Token ist der einzige Schlüssel: ohne ihn kann sich kein Client verbinden,
+und kein anderer Spieler hängt sich an einen fremden Controller. Die Bridge
+lauscht standardmäßig nur auf `127.0.0.1`. Limits (siehe `settingtypes.txt`):
+`nanoc_bridge_max_clients`, `nanoc_bridge_handshake_timeout`,
+`nanoc_bridge_cmd_rate`, `nanoc_bridge_idle_timeout`. Der Controller ist selbst
+ein Techage-Node (Nummer steht im Formular): Techage kann ihn ein-/ausschalten
+(`topic 1`) und seinen Zustand lesen (`topic 129`).
+
+Ein komplettes Überwachungs-Beispiel: `examples/techage_monitor.nanoc`
+(Eingangskisten leer, Ausgangskiste voll, Autocrafter blockiert/Störung).
 
 ## Persistenz
 

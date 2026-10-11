@@ -152,9 +152,9 @@ local function formspec(pos)
 		"button[4.5,9.2;2,0.8;stop;Stop]" ..
 		"button[6.6,9.2;2,0.8;reset;Reset]" ..
 		"button[8.7,9.2;2,0.8;clear;Clear]" ..
-		"button[10.8,9.2;1,0.8;token;New]" ..
-		"label[0.3,10.35;External token:]" ..
-		"field[3.2,10.1;8.5,0.8;exttoken;;" .. nanoc.token(pos) .. "]"
+		"button[10.8,9.2;1,0.8;token;Token]" ..
+		"label[0.3,10.35;Techage #" .. meta:get_string("node_number") ..
+			"   Token: only the owner (press 'Token')]"
 end
 
 local function ensure_vm(pos)
@@ -275,10 +275,16 @@ minetest.register_node("nanoc:controller", {
 		elseif fields.clear then
 			clear_output(pos)
 		elseif fields.token then
-			local tok = random_token()
-			meta:set_string("token", tok)
-			if player then
-				minetest.chat_send_player(player:get_player_name(), "[nanoc] External token: " .. tok)
+			local owner = meta:get_string("owner")
+			local pname = player and player:get_player_name()
+			if pname and (pname == owner or
+					minetest.check_player_privs(pname, { protection_bypass = true })) then
+				local tok = random_token()
+				meta:set_string("token", tok)
+				minetest.chat_send_player(pname, "[nanoc] New external token: " .. tok ..
+					"  (share only with people you trust)")
+			elseif pname then
+				minetest.chat_send_player(pname, "[nanoc] Only the owner can create a token.")
 			end
 		end
 		meta:set_string("formspec", formspec(pos))
@@ -343,3 +349,30 @@ minetest.register_on_shutdown(function()
 		end
 	end
 end)
+
+-- Techage interface: the controller can be queried/controlled like a machine.
+-- send 1 (on/off = run/stop), request 128 (identify), 129 (state 1=run 6=stop).
+if nanoc.tech and nanoc.tech.register_node then
+	nanoc.tech.register_node({ "nanoc:controller" }, {
+		on_beduino_receive_cmnd = function(pos, src, topic, payload)
+			if topic == 1 then
+				if (payload and payload[1] or 0) ~= 0 then
+					ensure_vm(pos)
+					start(pos)
+				else
+					stop(pos)
+				end
+				return 0
+			end
+			return 2
+		end,
+		on_beduino_request_data = function(pos, src, topic, payload)
+			if topic == 128 then
+				return 0, "nanoc:controller"
+			elseif topic == 129 then
+				return 0, { M(pos):get_int("running") == 1 and 1 or 6 }
+			end
+			return 2, ""
+		end,
+	})
+end

@@ -194,3 +194,8 @@ function nanoc.catalog()
 	end
 	return { topics = topics, rules = rules }
 end
+
+-- The NanoC controller itself is a techage node (send 1 = run/stop).
+nanoc.register_capabilities({ "nanoc:controller" }, { 1, 128, 129 }, {
+	[1] = { kind = "send", name = "run/stop", note = "[state] 0=stop, 1=run" },
+})

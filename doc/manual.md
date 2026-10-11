@@ -157,14 +157,25 @@ A controller can be reached from a PC via TCP:
    `minetest.conf`). It binds to `127.0.0.1:41100` by default
    (`nanoc_bridge_bind` / `nanoc_bridge_port`). No extra dependency – the
    sockets are built into `nanoclib`.
-2. **In-game**: open the controller; the "External token" is shown. The
-   `New` button regenerates it.
+2. **In-game**: open the controller and press **Token** — only the owner (or a
+   player with `protection_bypass`) can do this; the new token is sent to that
+   player's chat. Share it only with people you trust (e.g. a moderator).
 3. **On the PC**:
    ```bash
    python -m nanoc_client.cli --host 127.0.0.1 --port 41100 --token <TOKEN>
    ```
    Commands: `state`, `attach`, `bp <line>`, `step`, `cont`, `vars`, `key`,
    `help`.
+
+The token is the only key: without it a client cannot connect, and different
+players cannot attach to another player's controller. The bridge binds to
+`127.0.0.1` by default. Limits (see `settingtypes.txt`): `nanoc_bridge_max_clients`,
+`nanoc_bridge_handshake_timeout`, `nanoc_bridge_cmd_rate`, `nanoc_bridge_idle_timeout`.
+The controller itself is a techage node (its number is shown in the formspec):
+techage can switch it on/off (`topic 1`) and read its state (`topic 129`).
+
+See `examples/techage_monitor.nanoc` for a full monitoring example (input
+chests empty, output chest full, autocrafter blocked/fault).
 
 The bridge only listens on localhost by default. Never expose it to the
 internet without a tunnel/TLS – the token is the only protection.
