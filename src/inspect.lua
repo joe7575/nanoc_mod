@@ -130,6 +130,7 @@ function nanoc.inspect(center, radius)
 				inv = inv,
 				pull_dir = pull_dir > 0 and pull_dir or nil,
 				push_dir = push_dir > 0 and push_dir or nil,
+				caps = nanoc.capabilities and nanoc.capabilities(node.name) or nil,
 			}
 		end
 	end
@@ -205,6 +206,7 @@ function nanoc.inspect(center, radius)
 	return {
 		center = { x = center.x, y = center.y, z = center.z },
 		radius = radius,
+		topics = nanoc.cap_topics,
 		nodes = nodes,
 		edges = edges,
 		flow = flow,
