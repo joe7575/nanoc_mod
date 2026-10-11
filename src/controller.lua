@@ -106,6 +106,9 @@ local function append_output(pos, s)
 	if nanoc.bridge and nanoc.bridge.on_output then
 		nanoc.bridge.on_output(pos, s)
 	end
+	if nanoc.termlib_send then
+		nanoc.termlib_send(pos, s)
+	end
 end
 
 local function clear_output(pos)
