@@ -44,6 +44,9 @@ end
 
 local function clean(s)
 	if not s then return nil end
+	-- strip Luanti translated-string markers: ESC "(@...)" and ESC "E"
+	s = s:gsub("\27%([^)]*%)", "")
+	s = s:gsub("\27.", "")
 	s = s:gsub("%c", "")
 	s = s:gsub("^%s+", ""):gsub("%s+$", "")
 	return s ~= "" and s or nil
