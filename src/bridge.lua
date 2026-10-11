@@ -107,7 +107,35 @@ local function send_frame(c, channel, payload)
 	lib.net_send(c.id, frame(channel, payload, c.session))
 end
 
+-- focus arbitration: one debug owner per controller, everyone else is a viewer
+local Owner = {}   -- [pos_key] = client
+
+local function pos_key(pos)
+	return pos.x .. "," .. pos.y .. "," .. pos.z
+end
+
+local function claim_focus(c)
+	local k = pos_key(c.pos)
+	if Owner[k] == nil or Owner[k] == c then
+		Owner[k] = c
+		c.is_owner = true
+		return true
+	end
+	return false
+end
+
+local function release_focus(c)
+	if c.is_owner and c.pos then
+		local k = pos_key(c.pos)
+		if Owner[k] == c then
+			Owner[k] = nil
+		end
+	end
+	c.is_owner = false
+end
+
 local function close_client(c)
+	release_focus(c)
 	lib.net_close(c.id)
 	clients[c.id] = nil
 end
@@ -157,6 +185,17 @@ local function handle_debug(c, payload)
 	local w = r_words(payload)
 	local cmd = w[1]
 	local resp
+
+	-- focus arbitration: ATTACH claims control; other control commands need it
+	if cmd == CMD.ATTACH then
+		if not claim_focus(c) then
+			send_frame(c, CH_DEBUG, words({ cmd, STS.DENIED }))
+			return
+		end
+	elseif cmd ~= CMD.DETACH and cmd ~= CMD.PROG_GET and not c.is_owner then
+		send_frame(c, CH_DEBUG, words({ cmd, STS.DENIED }))
+		return
+	end
 
 	if cmd == CMD.ATTACH then
 		local allow = (w[2] or 1) ~= 0
@@ -251,6 +290,10 @@ local function handle_debug(c, payload)
 	if cmd == CMD.HALT then
 		send_frame(c, CH_DEBUG, words({ EVT.HALTED, 3, lib.get_line(c.pos), lib.get_pc(c.pos) }))
 	end
+
+	if cmd == CMD.DETACH then
+		release_focus(c)
+	end
 end
 
 local function do_handshake(c, payload)
@@ -333,7 +376,9 @@ minetest.register_globalstep(function(dtime)
 					elseif f.channel == CH_DEBUG then
 						handle_debug(c, f.payload)
 					elseif f.channel == CH_TERM then
-						lib.push_key(c.pos, f.payload)
+						if c.is_owner then
+							lib.push_key(c.pos, f.payload)
+						end
 					end
 				end
 			end
