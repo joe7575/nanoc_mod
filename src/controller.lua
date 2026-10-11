@@ -281,8 +281,14 @@ minetest.register_node("nanoc:controller", {
 					minetest.check_player_privs(pname, { protection_bypass = true })) then
 				local tok = random_token()
 				meta:set_string("token", tok)
-				minetest.chat_send_player(pname, "[nanoc] New external token: " .. tok ..
-					"  (share only with people you trust)")
+				-- show it in a selectable text field (chat has no copy on Linux)
+				minetest.show_formspec(pname, "nanoc:token@" .. P2S(pos),
+					"size[9,2.4]" ..
+					"label[0.3,0.2;External token (select the text, then Ctrl+C):]" ..
+					"field[0.3,0.8;8.4,0.9;token;;" .. tok .. "]" ..
+					"label[0.3,1.8;Share it only with people you trust.]")
+				minetest.chat_send_player(pname,
+					"[nanoc] New external token created (see the window).")
 			elseif pname then
 				minetest.chat_send_player(pname, "[nanoc] Only the owner can create a token.")
 			end
