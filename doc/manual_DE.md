@@ -11,6 +11,11 @@ sich Techage-/TechPack-Maschinen direkt (per Knotennummer) steuern.
 | `nanoc:controller` | Der Computer (Programm-Editor + Ausführung) |
 | `nanoc:terminal` | Live-Anzeige der Terminal-Ausgabe des Controllers |
 
+Optional kann ein `termlib:terminal1` (aus der `termlib`-Mod) als Anzeige
+**und** Tastatur dienen – statt `nanoc:terminal`. Anschließen wie gewohnt:
+Terminal in die Hand nehmen, Controller linksklicken, platzieren, `@connect`.
+Getippte Kommandos kommen im Programm über `key()` an.
+
 ## Bedienung
 
 1. **Controller** platzieren und rechtsklicken.

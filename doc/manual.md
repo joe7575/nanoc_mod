@@ -11,6 +11,11 @@ Techage/TechPack machines directly (by node number).
 | `nanoc:controller` | The computer (program editor + execution) |
 | `nanoc:terminal` | Live display of the controller's terminal output |
 
+Optionally, a `termlib:terminal1` (from the `termlib` mod) can serve as the
+display **and** keyboard instead of `nanoc:terminal` (connect it as usual:
+wield, left-click the controller, place, `@connect`). Typed commands arrive in
+the program via `key()`.
+
 ## Usage
 
 1. Place a **controller** and right-click it.
