@@ -158,8 +158,9 @@ Ein Controller ist vom PC aus per TCP erreichbar:
    (`nanoc_bridge_bind` / `nanoc_bridge_port`). Keine extra Abhängigkeit – die
    Sockets stecken in `nanoclib`.
 2. **Im Spiel**: Controller öffnen und **Token** drücken – nur der Owner (oder
-   ein Spieler mit `protection_bypass`) darf das; der neue Token geht in dessen
-   Chat. Nur an vertrauenswürdige Personen weitergeben (z. B. Moderator).
+   ein Spieler mit `protection_bypass`) darf das; der Token erscheint in einem
+   kleinen Fenster mit selektierbarem Textfeld (Text markieren, dann Ctrl+C).
+   Nur an vertrauenswürdige Personen weitergeben (z. B. Moderator).
 3. **Am PC**:
    ```bash
    python -m nanoc_client.cli --host 127.0.0.1 --port 41100 --token <TOKEN>
