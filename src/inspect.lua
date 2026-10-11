@@ -206,7 +206,6 @@ function nanoc.inspect(center, radius)
 	return {
 		center = { x = center.x, y = center.y, z = center.z },
 		radius = radius,
-		topics = nanoc.cap_topics,
 		nodes = nodes,
 		edges = edges,
 		flow = flow,

@@ -180,3 +180,17 @@ function nanoc.capabilities(name)
 	end
 	return nil
 end
+
+-- Full catalog, JSON-friendly: topics keyed by STRING number (so write_json
+-- emits an object, not a sparse array), plus the name-pattern rules.
+function nanoc.catalog()
+	local topics = {}
+	for t, info in pairs(nanoc.cap_topics) do
+		topics[tostring(t)] = info
+	end
+	local rules = {}
+	for i, rule in ipairs(nanoc.cap_rules) do
+		rules[i] = { rule[1], rule[2] }
+	end
+	return { topics = topics, rules = rules }
+end

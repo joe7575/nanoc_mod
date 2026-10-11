@@ -42,7 +42,7 @@ local CH_DEBUG, CH_TERM, CH_CTRL = 1, 2, 3
 local CMD = { ATTACH = 1, DETACH = 2, STATE = 3, BP_SET = 4, BP_CLR = 5,
 	BP_CLR_ALL = 6, HALT = 7, CONTINUE = 8, STEP = 9, STEP_OVER = 10,
 	STEP_OUT = 11, VAR_INFO = 12, VAR_WRITE = 13, ARR_READ = 14, BACKTRACE = 15,
-	PROG_GET = 0x20, PROG_SET = 0x21, SCAN = 0x22 }
+	PROG_GET = 0x20, PROG_SET = 0x21, SCAN = 0x22, CATALOG = 0x23 }
 local EVT = { HALTED = 0x80, ENDED = 0x81, DETACHED = 0x82 }
 local STS = { OK = 0, END = 1, NOT_ATTACHED = 2, NO_SCRIPT = 3, PARAM = 4,
 	NOT_HALTED = 5, FULL = 6, NO_CODE = 7, DENIED = 8, UNKNOWN = 9 }
@@ -192,7 +192,8 @@ local function handle_debug(c, payload)
 			send_frame(c, CH_DEBUG, words({ cmd, STS.DENIED }))
 			return
 		end
-	elseif cmd ~= CMD.DETACH and cmd ~= CMD.PROG_GET and cmd ~= CMD.SCAN and not c.is_owner then
+	elseif cmd ~= CMD.DETACH and cmd ~= CMD.PROG_GET and cmd ~= CMD.SCAN
+			and cmd ~= CMD.CATALOG and not c.is_owner then
 		send_frame(c, CH_DEBUG, words({ cmd, STS.DENIED }))
 		return
 	end
@@ -284,6 +285,11 @@ local function handle_debug(c, payload)
 		local radius = w[2] or 8
 		local snap = nanoc.inspect and nanoc.inspect(c.pos, radius)
 		local json = snap and minetest.write_json(snap) or "{}"
+		resp = { cmd, STS.OK, #json }
+		for i = 1, #json do resp[#resp + 1] = json:byte(i) end
+	elseif cmd == CMD.CATALOG then
+		local cat = nanoc.catalog and nanoc.catalog() or {}
+		local json = minetest.write_json(cat)
 		resp = { cmd, STS.OK, #json }
 		for i = 1, #json do resp[#resp + 1] = json:byte(i) end
 	else
