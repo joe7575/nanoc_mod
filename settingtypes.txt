@@ -16,7 +16,8 @@ nanoc_bridge_idle_timeout (NanoC: close idle clients after N seconds, 0=off) int
 # Adaptive CPU budget: the controller measures how long a tick really takes and
 # adjusts the VM instruction budget to stay near the time target. No hard limit,
 # no penalty - the program just resumes next tick. Idle servers get the full
-# budget; more players / a lagging server reduce it.
+# budget; more players reduce it, and a loaded server lowers the effective
+# throughput through the measured runtime.
 
 nanoc_cpu_tick_ms (NanoC: target CPU time per controller tick in ms, idle server) float 8.0
 nanoc_cpu_tick_min_ms (NanoC: minimum CPU time per controller tick in ms) float 1.0

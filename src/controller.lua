@@ -26,10 +26,10 @@ local MAX_LINES = 40            -- keep only the last N terminal lines
 
 -- Adaptive per-controller CPU budget (server-owner tunable, see settingtypes).
 -- The controller measures how long a tick really takes and grows/shrinks the
--- VM instruction budget to stay near the time target. More players / a lagging
--- server reduce the budget; an idle server gets the full budget. There is no
--- hard limit and no penalty for the owner - just a time slice (the program
--- simply resumes next tick).
+-- VM instruction budget to stay near the time target. More players (and a
+-- loaded server, via the measured runtime) reduce the budget; an idle server
+-- gets the full budget. There is no hard limit and no penalty for the owner -
+-- just a time slice (the program simply resumes next tick).
 local CPU_TICK_MS    = tonumber(minetest.settings:get("nanoc_cpu_tick_ms")) or 8.0
 local CPU_TICK_MIN_MS = tonumber(minetest.settings:get("nanoc_cpu_tick_min_ms")) or 1.0
 local CPU_PLAYER_SCALE = minetest.settings:get_bool("nanoc_cpu_player_scale", true)
@@ -38,7 +38,7 @@ local VM_CYCLES_MIN   = tonumber(minetest.settings:get("nanoc_vm_cycles_min")) o
 local VM_CYCLES_MAX   = tonumber(minetest.settings:get("nanoc_vm_cycles_max")) or 100000
 
 local Output = {}               -- [hash] = terminal output buffer
-local Cpu = {}                  -- [hash] = { cycles = ..., last_us = ... }
+local Cpu = {}                  -- [hash] = { cycles = ..., last_log_us = ... }
 local Loaded = {}               -- [hash] = pos, all live VMs (for persistence)
 nanoc.controllers = {}          -- [hash] = pos, all controllers (for the bridge)
 nanoc.dbg = {}                  -- [hash] = true, paused by an external debugger
@@ -96,30 +96,21 @@ local function cpu_state(pos)
 	local k = hash(pos)
 	local st = Cpu[k]
 	if not st then
-		st = { cycles = VM_CYCLES_START, last_us = nil, last_log_us = nil }
+		st = { cycles = VM_CYCLES_START, last_log_us = nil }
 		Cpu[k] = st
 	end
 	return st
 end
 
--- Compute the CPU time budget (microseconds) for this tick, based on the
--- configured target, the number of players and recent server lag.
-local function cpu_budget_us(pos, now_us)
-	local st = cpu_state(pos)
+-- Compute the CPU time budget (microseconds) for this tick. The base target is
+-- scaled down by the number of players; the VM's own measured runtime (AIMD in
+-- on_timer) adapts the instruction budget to real server load.
+local function cpu_budget_us()
 	local budget_ms = CPU_TICK_MS
 	if CPU_PLAYER_SCALE then
 		local players = #minetest.get_connected_players()
 		if players > 1 then
 			budget_ms = budget_ms / players
-		end
-	end
-	-- If the previous tick was late (server busy), back off proportionally.
-	-- Large gaps (>1 s) are treated as a pause (debugger/sleep), not load.
-	if st.last_us then
-		local late_ms = (now_us - st.last_us) / 1000 - CYCLE_TIME * 1000
-		if late_ms > 0 and late_ms < 1000 then
-			if late_ms > 50 then late_ms = 50 end
-			budget_ms = budget_ms / (1 + late_ms / 25)
 		end
 	end
 	if budget_ms < CPU_TICK_MIN_MS then
@@ -371,12 +362,12 @@ minetest.register_node("nanoc:controller", {
 		if M(pos):get_int("running") ~= 1 then
 			return false
 		end
+		local st = cpu_state(pos)
 		if nanoc.dbg_is_paused(pos) then
 			return true   -- suspended by an external debugger
 		end
-		local st = cpu_state(pos)
 		local now_us = minetest.get_us_time()
-		local budget_us = cpu_budget_us(pos, now_us)
+		local budget_us = cpu_budget_us()
 		local deadline_us = now_us + budget_us
 		local ret, yielded = nanoc.run(pos, st.cycles, deadline_us)
 		append_output(pos, lib.output(pos))
@@ -388,7 +379,6 @@ minetest.register_node("nanoc:controller", {
 		-- stays near the time target. Yielding early is not a failure, it just
 		-- continues next tick.
 		local used_us = minetest.get_us_time() - now_us
-		st.last_us = now_us
 		if ret == lib.SLEEP then
 			st.cycles = VM_CYCLES_START     -- fresh start after a pause
 		elseif used_us < budget_us * 0.5 then
@@ -411,7 +401,7 @@ minetest.register_node("nanoc:controller", {
 			if nanoc.bridge and nanoc.bridge.on_halt then
 				nanoc.bridge.on_halt(pos, lib.get_reason(pos), lib.get_line(pos), lib.get_pc(pos))
 			end
-			return true
+			minetest.get_node_timer(pos):start(CYCLE_TIME)
 		elseif ret == lib.END or ret == lib.ERROR then
 			lib.reset(pos)   -- restart the main program next tick
 			minetest.get_node_timer(pos):start(CYCLE_TIME)
