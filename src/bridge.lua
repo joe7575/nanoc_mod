@@ -239,7 +239,7 @@ local function handle_debug(c, payload)
 	elseif cmd == CMD.STEP or cmd == CMD.STEP_OVER or cmd == CMD.STEP_OUT then
 		local mode = (cmd == CMD.STEP) and 0 or ((cmd == CMD.STEP_OVER) and 1 or 2)
 		if nanoc.step then
-			-- dispatches Lua-backed xfuncs (log, ta_cmd) and flushes output
+			-- dispatches Lua-backed xfuncs (log, ta_send_cmd, ta_req_data) and flushes output
 			nanoc.step(c.pos, mode)
 		elseif lib.step_mode then
 			lib.step_mode(c.pos, mode, 100000)

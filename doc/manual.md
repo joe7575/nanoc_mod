@@ -140,11 +140,11 @@ func sum(int32[] arr, int32 n) {
 
 | Function | Meaning |
 |---|---|
-| `ta_send(number, topic, a, b, c)` | Command/request to a Techage node number |
-| `ta_send_s(number, topic, "text")` | String command (e.g. for displays) |
-| `ta_signal(number, 0\|1)` | On/off signal |
-| `ta_cmd(number, topic, a, b, c)` | Synchronous request → numeric result |
-| `ta_cmd_s(number, topic, a, b, c)` | Synchronous request → string result |
+| `ta_send_cmd(number, topic, a, b, c)` | Command to a Techage node → status (0 = ok) |
+| `ta_send_cmd_s(number, topic, "text")` | String command (e.g. displays) → status |
+| `ta_signal(number, 0\|1)` | On/off signal (shortcut) |
+| `ta_req_data(number, topic, a, b, c)` | Synchronous request → numeric result |
+| `ta_req_data_s(number, topic, a, b, c)` | Synchronous request → string result |
 | `ta_recv()` | 1 if a command arrived (else 0) |
 | `ta_port()`, `ta_topic()`, `ta_payload(i)` | read the received command |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | read the received signal |
@@ -176,7 +176,7 @@ Instead each controller measures how long a tick really takes and adapts its VM
 instruction budget to stay near a **time target** (`nanoc_cpu_tick_ms`, default
 8 ms). A tick that finishes early gets a larger budget next time; a slow tick
 gets a smaller one. An idle server thus gives more compute, a busy one less.
-On top of that, a techage-heavy loop (`ta_cmd`/`ta_send`) that runs longer than
+On top of that, a techage-heavy loop (`ta_req_data`/`ta_send_cmd`) that runs longer than
 the budget simply **yields and continues in the next tick** - no error, no
 damage. When the budget throttles a program, an info message is written to the
 debug terminal (channel 4), at most once per second per controller.
@@ -203,17 +203,19 @@ mapping is needed (NanoC has 32-bit variables).
 ```
 int32 chest = 5                             // a techage node number
 
-int32 state = ta_cmd(chest, 131, 0, 0, 0)   // synchronous request -> number
-str8  name$ = ta_cmd_s(chest, 128, 0, 0, 0) // synchronous request -> string
+int32 state = ta_req_data(chest, 131, 0, 0, 0)   // synchronous request -> number
+str8  name$ = ta_req_data_s(chest, 128, 0, 0, 0) // synchronous request -> string
 
-ta_send(chest, 1, 1, 0, 0)                  // command (topic < 128)
-ta_send_s(chest, 67, "text")                // string command (displays)
+int32 sts = ta_send_cmd(chest, 1, 1, 0, 0)       // command (topic < 128) -> status
+ta_send_cmd_s(chest, 67, "text")                 // string command (displays)
 ```
 
-`ta_cmd`/`ta_cmd_s` return the answer directly (synchronous, like techage's
-`basic_terminal`), so no `sleep`+`ta_recv` polling is needed for requests.
+`ta_req_data`/`ta_req_data_s` return the answer directly (synchronous, like
+techage's `basic_terminal`), so no `sleep`+`ta_recv` polling is needed for
+requests. `ta_send_cmd`/`ta_send_cmd_s` return the status (`0` = ok, like
+Beduino/NanoBasic).
 
-For a `ta_send` command you may still read replies/commands via:
+For asynchronous replies/commands you may still read them via:
 ```
 ta_recv()                          // 1 if a reply/command arrived
 int32 num = ta_port()              // the node number involved

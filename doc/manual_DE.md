@@ -141,11 +141,11 @@ func sum(int32[] arr, int32 n) {
 
 | Funktion | Bedeutung |
 |---|---|
-| `ta_send(nummer, topic, a, b, c)` | Kommando/Anfrage an eine Techage-Knotennummer |
-| `ta_send_s(nummer, topic, "text")` | String-Kommando (z. B. für Displays) |
-| `ta_signal(nummer, 0\|1)` | Signal (on/off) senden |
-| `ta_cmd(nummer, topic, a, b, c)` | Synchrone Anfrage → Zahl |
-| `ta_cmd_s(nummer, topic, a, b, c)` | Synchrone Anfrage → String |
+| `ta_send_cmd(nummer, topic, a, b, c)` | Kommando an eine Techage-Knotennummer → Status (0 = ok) |
+| `ta_send_cmd_s(nummer, topic, "text")` | String-Kommando (z. B. Displays) → Status |
+| `ta_signal(nummer, 0\|1)` | Signal (on/off) senden (Kurzform) |
+| `ta_req_data(nummer, topic, a, b, c)` | Synchrone Anfrage → Zahl |
+| `ta_req_data_s(nummer, topic, a, b, c)` | Synchrone Anfrage → String |
 | `ta_recv()` | 1, wenn ein Kommando ankam (sonst 0) |
 | `ta_port()`, `ta_topic()`, `ta_payload(i)` | das empfangene Kommando lesen |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | das empfangene Signal lesen |
@@ -178,7 +178,7 @@ passt sein VM-Instruktionsbudget an ein **Zeitziel** an (`nanoc_cpu_tick_ms`,
 Standard 8 ms). Ein schnell fertiger Tick erhält beim nächsten Mal mehr, ein
 langsamer weniger. Ein leerer Server bekommt so mehr Rechenzeit, ein
 ausgelasteter weniger. Zusätzlich gilt: Eine techage-lastige Schleife
-(`ta_cmd`/`ta_send`), die länger als das Budget braucht, **gibt einfach ab und
+(`ta_req_data`/`ta_send_cmd`), die länger als das Budget braucht, **gibt einfach ab und
 läuft im nächsten Tick weiter** – kein Fehler, kein Schaden. Wenn das Budget
 drosselt, wird eine Info an das Debug-Terminal (Kanal 4) geschrieben, maximal
 einmal pro Sekunde und Controller.
@@ -205,17 +205,19 @@ Mapping nötig (NanoC hat 32-Bit-Variablen).
 ```
 int32 kiste = 5                              // eine Techage-Knotennummer
 
-int32 zustand = ta_cmd(kiste, 131, 0, 0, 0)  // synchrone Anfrage -> Zahl
-str8  name$   = ta_cmd_s(kiste, 128, 0, 0, 0)// synchrone Anfrage -> String
+int32 zustand = ta_req_data(kiste, 131, 0, 0, 0) // synchrone Anfrage -> Zahl
+str8  name$   = ta_req_data_s(kiste, 128, 0, 0, 0)// synchrone Anfrage -> String
 
-ta_send(kiste, 1, 1, 0, 0)                   // Kommando (topic < 128)
-ta_send_s(kiste, 67, "text")                 // String-Kommando (Displays)
+int32 sts = ta_send_cmd(kiste, 1, 1, 0, 0)       // Kommando (topic < 128) -> Status
+ta_send_cmd_s(kiste, 67, "text")                 // String-Kommando (Displays)
 ```
 
-`ta_cmd`/`ta_cmd_s` liefern die Antwort **direkt** (synchron, wie bei Techage
-`basic_terminal`) – kein `sleep`+`ta_recv`-Polling für Anfragen nötig.
+`ta_req_data`/`ta_req_data_s` liefern die Antwort **direkt** (synchron, wie bei
+Techage `basic_terminal`) – kein `sleep`+`ta_recv`-Polling für Anfragen nötig.
+`ta_send_cmd`/`ta_send_cmd_s` liefern den **Status** (`0` = ok, wie
+Beduino/NanoBasic).
 
-Für `ta_send`-Kommandos können Antworten/Kommandos weiterhin gelesen werden:
+Für asynchrone Antworten/Kommandos können diese weiterhin gelesen werden:
 ```
 ta_recv()                          // 1, wenn Antwort/Kommando ankam
 int32 num = ta_port()              // die betroffene Knotennummer

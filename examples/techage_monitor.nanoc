@@ -14,26 +14,37 @@
 //   out_chest         : output chest      (e.g. 8)
 //   crafter           : autocrafter       (e.g. 6)
 //
-// ta_cmd(number, topic, a, b, c) sends a request and returns the numeric
-// result directly (synchronous). Topic values (BEP 005):
+// ta_req_data(number, topic, a, b, c) sends a request and returns the numeric
+// result directly (synchronous). ta_send_cmd(number, topic, a, b, c) sends a
+// command and returns the status (0 = ok).
+// Topic values (BEP 005):
 //   chest state  (131): 0 = empty, 1 = loaded, 2 = full
 //   machine state(129): 1 run, 2 blocked, 3 standby, 5 fault,
 //                       6 stopped, 7 unloaded
 
+const SIGNAL = 11
 int32 chest_a = 4
 int32 chest_b = 5
 int32 out_chest = 8
 int32 crafter = 6
+int32 tmp = 0
 
 int32 cycle = 0
+
+func int32 blinky(int32 cnt) {
+    if(cnt mod 2 == 0) {
+        return 1
+    }
+    return 0
+}
 
 printf("\27\1") // Clearscreen
 
 while (1) {
-    int32 a = ta_cmd(chest_a, 131, 0, 0, 0)
-    int32 b = ta_cmd(chest_b, 131, 0, 0, 0)
-    int32 o = ta_cmd(out_chest, 131, 0, 0, 0)
-    int32 c = ta_cmd(crafter, 129, 0, 0, 0)
+    int32 a = ta_req_data(chest_a, 131, 0, 0, 0)
+    int32 b = ta_req_data(chest_b, 131, 0, 0, 0)
+    int32 o = ta_req_data(out_chest, 131, 0, 0, 0)
+    int32 c = ta_req_data(crafter, 129, 0, 0, 0)
 
     if (a == 0) {
         printf("ALARM: input chest A empty!\n")
@@ -52,6 +63,8 @@ while (1) {
     }
 
     cycle = cycle + 1
+    printf("Lampe = %d\n", ta_send_cmd(SIGNAL, 2, 1))
+
     if ((cycle % 10) == 0) {
         //log("monitor alive, cycle " + str$(cycle) + "\n")
         log("monitor alive\n")

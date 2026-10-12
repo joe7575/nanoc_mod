@@ -443,33 +443,15 @@ minetest.register_on_shutdown(function()
 	end
 end)
 
--- Outgoing: forward commands from the VM directly to the target node number.
--- (NanoC has 32-bit vars, so the program addresses techage numbers directly;
---  no io_module/port indirection needed.)
+-- Outgoing on/off signals (ta_signal), forwarded directly to the target node.
+-- (Commands/requests are synchronous Lua xfuncs: ta_send_cmd / ta_req_data.)
+-- NanoC has 32-bit vars, so the program addresses techage numbers directly;
+-- no io_module/port indirection needed.
 function nanoc.tech.update(cpu_pos)
 	if not minetest.global_exists("techage") then return end
 	local src = M(cpu_pos):get_string("node_number")
 	if src == "" then return end
-	local number, topic, payload, ctype
-	while true do
-		number, topic, payload, ctype = lib.techage_read_cmnd(cpu_pos)
-		if not number then break end
-		if ctype == 2 and type(payload) == "table" then
-			local chars = {}
-			for i = 1, #payload do chars[i] = string.char(payload[i] % 256) end
-			payload = table.concat(chars)
-		end
-		if topic < 128 then
-			techage.beduino_send_cmnd(src, number, topic, payload)
-		else
-			local sts, resp = techage.beduino_request_data(src, number, topic, payload)
-			if sts == 0 and resp ~= nil then
-				lib.techage_write_cmnd(cpu_pos, number, topic,
-					type(resp) == "table" and resp or { resp })
-			end
-		end
-	end
-	local val
+	local number, val
 	while true do
 		number, val = lib.techage_read_signal(cpu_pos)
 		if not number then break end

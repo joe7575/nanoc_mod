@@ -10,11 +10,13 @@
 
 	Synchronous techage calls, implemented as Lua-dispatched external
 	functions (like techage's basic_terminal): when the VM calls one, the run
-	loop returns to Lua, the handler does techage.beduino_request_data()
-	immediately and pushes the result, then the VM resumes.
+	loop returns to Lua, the handler does the techage call immediately and
+	pushes the result, then the VM resumes.
 
-	ta_cmd(number, topic, a, b, c)   -> number   (request, numeric result)
-	ta_cmd_s(number, topic, a, b, c) -> string   (request, string result)
+	ta_send_cmd(number, topic, a, b, c)   -> status  (command, numeric payload)
+	ta_send_cmd_s(number, topic, "text")  -> status  (command, string payload)
+	ta_req_data(number, topic, a, b, c)   -> number  (request, numeric result)
+	ta_req_data_s(number, topic, a, b, c) -> string  (request, string result)
 
 ]]--
 
@@ -37,7 +39,24 @@ local function pop5(pos)
 end
 
 if minetest.global_exists("techage") then
-	Functions[lib.define_xfunc("ta_cmd", 5, {1, 1, 1, 1, 1}, 1)] = function(pos)
+	-- Send a command (topic < 128). Returns the status: 0 = ok, else error.
+	Functions[lib.define_xfunc("ta_send_cmd", 5, {1, 1, 1, 1, 1}, 1)] = function(pos)
+		local number, topic, a, b, c = pop5(pos)
+		local sts = techage.beduino_send_cmnd(own_num(pos), number, topic, {a, b, c})
+		lib.push_num(pos, tonumber(sts) or 0)
+	end
+
+	-- Send a command with a string payload (e.g. pusher config, display text).
+	Functions[lib.define_xfunc("ta_send_cmd_s", 3, {1, 1, 2}, 1)] = function(pos)
+		local text = lib.pop_str(pos)
+		local topic = lib.pop_num(pos)
+		local number = lib.pop_num(pos)
+		local sts = techage.beduino_send_cmnd(own_num(pos), number, topic, text)
+		lib.push_num(pos, tonumber(sts) or 0)
+	end
+
+	-- Request data (topic >= 128) -> numeric result.
+	Functions[lib.define_xfunc("ta_req_data", 5, {1, 1, 1, 1, 1}, 1)] = function(pos)
 		local number, topic, a, b, c = pop5(pos)
 		local sts, resp = techage.beduino_request_data(
 			own_num(pos), number, topic, {a, b, c})
@@ -48,7 +67,8 @@ if minetest.global_exists("techage") then
 		end
 	end
 
-	Functions[lib.define_xfunc("ta_cmd_s", 5, {1, 1, 1, 1, 1}, 2)] = function(pos)
+	-- Request data (topic >= 128) -> string result.
+	Functions[lib.define_xfunc("ta_req_data_s", 5, {1, 1, 1, 1, 1}, 2)] = function(pos)
 		local number, topic, a, b, c = pop5(pos)
 		local sts, resp = techage.beduino_request_data(
 			own_num(pos), number, topic, {a, b, c})
