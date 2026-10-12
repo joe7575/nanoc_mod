@@ -285,6 +285,11 @@ local function handle_debug(c, payload)
 		local ok = lib.load(c.pos, src)
 		local msg = lib.output(c.pos)
 		lib.output_clear(c.pos)
+		if not ok then
+			-- never let a failed compile run: reset the VM and stop it
+			lib.reset(c.pos)
+			if nanoc.stop then nanoc.stop(c.pos) end
+		end
 		lib.debug_attach(c.pos, 1, 0)
 		nanoc.dbg_pause(c.pos)
 		resp = { cmd, ok and STS.OK or STS.PARAM, #msg }

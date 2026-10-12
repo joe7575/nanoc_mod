@@ -234,12 +234,14 @@ local function ensure_vm(pos)
 	Loaded[key] = pos
 end
 
+local stop   -- forward declaration (used by compile() below)
+
 local function compile(pos)
 	local meta = M(pos)
 	local src = meta:get_string("program")
 	if not lib.create(pos) then
 		append_output(pos, "[error] could not create VM\n")
-		return
+		return false
 	end
 	lib.output_clear(pos)
 	local ok = lib.load(pos, src)
@@ -247,11 +249,15 @@ local function compile(pos)
 	lib.output_clear(pos)
 	if not ok then
 		append_output(pos, "[compile error]\n" .. compile_out)
+		-- A failed compile leaves no valid code; make sure it can never run.
+		lib.reset(pos)
+		stop(pos)
 	else
 		-- fresh program: drop any stored frozen state
 		storage:set_string(hash(pos), "")
 	end
 	Loaded[hash(pos)] = pos
+	return ok
 end
 
 local function start(pos)
@@ -260,7 +266,7 @@ local function start(pos)
 	minetest.get_node_timer(pos):start(CYCLE_TIME)
 end
 
-local function stop(pos)
+stop = function(pos)
 	M(pos):set_int("running", 0)
 	call_io(pos, "on_stop_io")
 	minetest.get_node_timer(pos):stop()
@@ -326,8 +332,9 @@ minetest.register_node("nanoc:controller", {
 		if fields.save then
 			compile(pos)
 		elseif fields.run then
-			compile(pos)
-			start(pos)
+			if compile(pos) then
+				start(pos)
+			end
 		elseif fields.stop then
 			stop(pos)
 		elseif fields.reset then

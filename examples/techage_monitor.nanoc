@@ -27,6 +27,8 @@ int32 crafter = 6
 
 int32 cycle = 0
 
+printf("\27\1") // Clearscreen
+
 while (1) {
     int32 a = ta_cmd(chest_a, 131, 0, 0, 0)
     int32 b = ta_cmd(chest_b, 131, 0, 0, 0)
@@ -51,7 +53,8 @@ while (1) {
 
     cycle = cycle + 1
     if ((cycle % 10) == 0) {
-        printf("monitor alive, cycle %d\n", cycle)
+        //log("monitor alive, cycle " + str$(cycle) + "\n")
+        log("monitor alive\n")
     }
 
     sleep(1000)
