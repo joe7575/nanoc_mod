@@ -269,11 +269,31 @@ function nanoc.stop(pos) stop(pos) end
 
 minetest.register_node("nanoc:controller", {
 	description = "NanoC Controller",
-	tiles = { "default_glass.png" },
+	--~ tiles = { "default_glass.png" },
+	--~ drawtype = "nodebox",
+	--~ node_box = {
+		--~ type = "fixed",
+		--~ fixed = { { -0.5, -0.5, -0.4, 0.5, 0.5, 0.4 } },
+	--~ },
+	inventory_image = "nanoc_mod_controller_inventory.png",
+	wield_image = "nanoc_mod_controller_inventory.png",
+	stack_max = 1,
+	tiles = {
+		-- up, down, right, left, back, front
+		"nanoc_mod_controller_side.png",
+		"nanoc_mod_controller_side.png",
+		"nanoc_mod_controller_side.png",
+		"nanoc_mod_controller_side.png",
+		"nanoc_mod_controller_side.png",
+		"nanoc_mod_controller_side.png^nanoc_mod_controller.png",
+	},
+
 	drawtype = "nodebox",
 	node_box = {
 		type = "fixed",
-		fixed = { { -0.5, -0.5, -0.4, 0.5, 0.5, 0.4 } },
+		fixed = {
+			{-6/32, -6/32, 12/32,  6/32,  6/32, 16/32},
+		},
 	},
 	paramtype = "light",
 	paramtype2 = "facedir",
