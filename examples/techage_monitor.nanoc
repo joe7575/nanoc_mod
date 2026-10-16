@@ -63,11 +63,10 @@ while (1) {
     }
 
     cycle = cycle + 1
-    printf("Lampe = %d\n", ta_send_cmd(SIGNAL, 2, 1))
+    printf("Lampe = %d\n", ta_send_cmd(SIGNAL, 2, blinky(cycle)))
 
     if ((cycle % 10) == 0) {
-        //log("monitor alive, cycle " + str$(cycle) + "\n")
-        log("monitor alive\n")
+        log("monitor alive, cycle " + str$(cycle) + "\n")
     }
 
     sleep(1000)
