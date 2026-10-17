@@ -219,16 +219,18 @@ local function formspec(pos)
 	local running = meta:get_int("running") == 1 and "running" or "stopped"
 	return "size[9.5,7.1]" ..
 		"box[0,-0.1;9.2,0.5;#c6e8ff]" ..
-		"label[0.2,-0.1;" .. minetest.colorize( "#000000", 'NanoC Controller "' .. minetest.formspec_escape(name)) .. '"]' ..
+		"label[0.2,-0.1;" .. minetest.colorize( "#000000", 'NanoC Controller "' .. minetest.formspec_escape(name) .. '"') .. ']' ..
+		techage.wrench_image(8.8, -0.05) ..
 		"label[0.1,0.5; Controller: " .. running .. "]" ..
 		"textarea[0.3,1.5;9.4,4.4;log;Log:;" ..
-			minetest.formspec_escape(nanoc.get_log(pos)) .. "]" ..
-		"button[0.3,5.5;1.7,0.8;run;Run]" ..
-		"button[2.1,5.5;1.7,0.8;stop;Stop]" ..
-		"button[3.9,5.5;1.7,0.8;reset;Reset]" ..
-		"button[5.7,5.5;1.7,0.8;clear;Clear]" ..
-		"button[7.5,5.5;1.7,0.8;token;Token]" ..
-		"label[0.3,6.3;Name: set via the Techage Info Tool (sneak + place). " ..
+		minetest.formspec_escape(nanoc.get_log(pos)) .. "]" ..
+		"button[0.3,5.5;1.4,0.8;run;Run]" ..
+		"button[1.75,5.5;1.4,0.8;stop;Stop]" ..
+		"button[3.2,5.5;1.4,0.8;reset;Reset]" ..
+		"button[4.65,5.5;1.4,0.8;clear;Clear]" ..
+		"button[6.1,5.5;1.4,0.8;token;Token]" ..
+		"button[7.55,5.5;1.4,0.8;update;Update]" ..
+		"label[0.3,6.5;Name: set via the Techage Info Tool (sneak + place).\n" ..
 			"Code/terminal: external (VS Code / nanoc-tui).]"
 end
 
@@ -379,6 +381,9 @@ minetest.register_node("nanoc:controller", {
 	end,
 
 	on_rightclick = function(pos, node, clicker)
+		if techage and techage.set_activeformspec then
+			techage.set_activeformspec(pos, clicker)
+		end
 		M(pos):set_string("formspec", formspec(pos))
 	end,
 
@@ -397,6 +402,10 @@ minetest.register_node("nanoc:controller", {
 			lib.reset(pos)
 		elseif fields.clear then
 			nanoc.clear_log(pos)
+		elseif fields.update then
+			if techage and techage.set_activeformspec then
+				techage.set_activeformspec(pos, player)
+			end
 		elseif fields.token then
 			local owner = meta:get_string("owner")
 			local pname = player and player:get_player_name()
@@ -409,9 +418,9 @@ minetest.register_node("nanoc:controller", {
 					.. P2S(pos) .. " (owner " .. owner .. "): " .. tok)
 				-- show it in a selectable text field (chat has no copy on Linux)
 				minetest.show_formspec(pname, "nanoc:token@" .. P2S(pos),
-					"size[9,2.4]" ..
+					"size[6.6,2.4]" ..
 					"label[0.3,0.2;External token (select the text, then Ctrl+C):]" ..
-					"field[0.3,0.8;8.4,0.9;token;;" .. tok .. "]" ..
+					"field[0.3,1.0;6.3,0.9;token;;" .. tok .. "]" ..
 					"label[0.3,1.8;Share it only with people you trust.]")
 				minetest.chat_send_player(pname,
 					"[nanoc] New external token created (see the window).")
