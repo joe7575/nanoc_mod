@@ -179,31 +179,6 @@ func sum(int32[] arr, int32 n) {
 - To "do something every second", `sleep(1000)` inside a `while (1)` loop is
   the simple way; for finer behaviour without pausing, use `millis()`.
 
-## CPU budget (server owners)
-
-NanoC does not enforce a hard command/RAM limit and never penalises the owner.
-Instead each controller measures how long a tick really takes and adapts its VM
-instruction budget to stay near a **time target** (`nanoc_cpu_tick_ms`, default
-8 ms). A tick that finishes early gets a larger budget next time; a slow tick
-gets a smaller one. An idle server thus gives more compute, a busy one less.
-On top of that, a techage-heavy loop (`ta_req_data`/`ta_send_cmd`) that runs longer than
-the budget simply **yields and continues in the next tick** - no error, no
-damage. When the budget throttles a program, an info message is written to the
-debug terminal (channel 4), at most once per second per controller.
-
-Settings (minetest.conf / `settingtypes.txt`):
-
-| Setting | Default | Meaning |
-|---|---|---|
-| `nanoc_cpu_tick_ms` | `8.0` | target CPU time per controller tick (ms) |
-| `nanoc_cpu_tick_min_ms` | `1.0` | never go below this per tick |
-| `nanoc_cpu_player_scale` | `true` | divide the budget by the number of players |
-| `nanoc_vm_cycles_start` | `20000` | initial VM instructions per tick |
-| `nanoc_vm_cycles_min` / `_max` | `500` / `100000` | instruction budget bounds |
-
-Set `nanoc_cpu_player_scale = false` for a fixed budget, or lower
-`nanoc_cpu_tick_ms` on a heavily loaded server (e.g. `3.0`).
-
 ## Techage / TechPack
 
 The controller is itself a Techage node (its number is shown in the formspec)
@@ -240,53 +215,36 @@ See `examples/techage_monitor.nanoc`.
 
 ## External terminal / debugger (Python client)
 
-A controller can be reached from a PC via TCP:
+A controller can be reached from a PC via TCP. The server admin must enable the
+bridge (see the mod's `README.md`).
 
-1. **Server**: enable the bridge (`nanoc_bridge_enable = true` in
-   `minetest.conf`). It binds to `127.0.0.1:41100` by default
-   (`nanoc_bridge_bind` / `nanoc_bridge_port`). No extra dependency – the
-   sockets are built into `nanoclib`.
-2. **In-game**: open the controller and press **Token** — only the owner (or a
+1. **In-game**: open the controller and press **Token** — only the owner (or a
    player with `protection_bypass`) can do this; the token appears in a small
    window with a selectable text field (select the text, then Ctrl+C). Share it
    only with people you trust (e.g. a moderator).
-3. **On the PC**:
+2. **On the PC**:
    ```bash
-   python -m nanoc_client.cli --host 127.0.0.1 --port 41100 --token <TOKEN>
+   python -m nanoc_client.cli --host <server> --port 41100 --token <TOKEN>
    ```
    Commands: `state`, `attach`, `bp <line>`, `step`, `cont`, `vars`, `key`,
    `help`.
 
 The token is the only key: without it a client cannot connect, and different
-players cannot attach to another player's controller. The bridge binds to
-`127.0.0.1` by default. Limits (see `settingtypes.txt`): `nanoc_bridge_max_clients`,
-`nanoc_bridge_handshake_timeout`, `nanoc_bridge_cmd_rate`, `nanoc_bridge_idle_timeout`.
-The controller itself is a techage node (its number is shown in the formspec):
-techage can switch it on/off (`topic 1`) and read its state (`topic 129`).
+players cannot attach to another player's controller. The controller itself is
+a techage node (its number is shown in the formspec): techage can switch it
+on/off (`topic 1`) and read its state (`topic 129`).
 
 See `examples/techage_monitor.nanoc` for a full monitoring example (input
 chests empty, output chest full, autocrafter blocked/fault).
 
-### Test phase: access from the LAN
+### Connection problems (external terminal/debugger)
 
-To use the terminal/debugger from a second PC while the game server runs on
-e.g. `192.168.178.246`, set in `minetest.conf`:
-
-```
-nanoc_bridge_enable = true
-nanoc_bridge_bind = 0.0.0.0
-nanoc_bridge_port = 41100
-```
-
-then connect with `--host 192.168.178.246 --port 41100 --token <TOKEN>`. Only do
-this in a **trusted LAN**: `0.0.0.0` makes the port reachable by every device in
-your network, and the link is **plaintext** (TLS is not implemented yet). The
-token is the only protection, and it can upload/download programs. Do **not**
-forward this port on the router and do not run it on a public/VPS server — add
-TLS first. Keep the default `127.0.0.1` when the client runs on the same machine
-as the server.
-
-Never expose the bridge to the internet without a tunnel/TLS.
+- Copy the token with the **Token** button in the controller form and enter it
+  exactly in the client (`--token ...`).
+- If the client reports "connection refused", the bridge is not reachable from
+  your network. Ask the server admin (admin setup and troubleshooting: see the
+  mod's `README.md`).
+- The bridge runs on the **server**, not in your game client.
 
 ## Persistence
 
