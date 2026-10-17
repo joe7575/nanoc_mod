@@ -293,6 +293,13 @@ minetest.register_node("nanoc:controller", {
 		type = "fixed",
 		fixed = {
 			{-6/32, -6/32, 12/32,  6/32,  6/32, 16/32},
+			{-6/32, -4/32, 10/32,  6/32,  4/32, 12/32},
+		},
+	},
+	selection_box = {
+		type = "fixed",
+		fixed = {
+			{-6/32, -6/32, 10/32,  6/32,  6/32, 16/32},
 		},
 	},
 	paramtype = "light",
@@ -314,6 +321,7 @@ minetest.register_node("nanoc:controller", {
 		meta:set_string("node_number", tostring(own_num or ""))
 		meta:set_string("owner", placer and placer:get_player_name() or "")
 		meta:set_string("formspec", formspec(pos))
+		meta:set_string("infotext", "NanoC Controller "..own_num)
 	end,
 
 	after_dig_node = function(pos)
@@ -420,6 +428,13 @@ minetest.register_node("nanoc:controller", {
 			nanoc.dbg_pause(pos)
 			if nanoc.bridge and nanoc.bridge.on_halt then
 				nanoc.bridge.on_halt(pos, lib.get_reason(pos), lib.get_line(pos), lib.get_pc(pos))
+			end
+			minetest.get_node_timer(pos):start(CYCLE_TIME)
+		elseif ret == lib.BREAK then
+			-- programmatic breakpoint() reached: pause like a debug break
+			nanoc.dbg_pause(pos)
+			if nanoc.bridge and nanoc.bridge.on_halt then
+				nanoc.bridge.on_halt(pos, 4, lib.get_line(pos), lib.get_pc(pos))
 			end
 			minetest.get_node_timer(pos):start(CYCLE_TIME)
 		elseif ret == lib.END or ret == lib.ERROR then
