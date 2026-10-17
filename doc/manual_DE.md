@@ -295,6 +295,6 @@ Die Bridge niemals ohne Tunnel/TLS ins Internet exposen.
 ## Persistenz
 
 Der Zustand (Variablen, Programmzähler, …) wird beim **sauberen Beenden** des
-Servers gespeichert und beim nächsten Start wiederhergestellt. `Save+Compile`
-startet ein geändertes Programm bewusst von vorn. Bei einem Server-Absturz geht
-der Zwischenstand verloren.
+Servers gespeichert und beim nächsten Start wiederhergestellt. Ein Upload eines
+geänderten Programms (externer Client) startet es bewusst von vorn. Bei einem
+Server-Absturz geht der Zwischenstand verloren.

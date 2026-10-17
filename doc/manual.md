@@ -291,6 +291,6 @@ Never expose the bridge to the internet without a tunnel/TLS.
 ## Persistence
 
 The state (variables, program counter, …) is saved on a **clean server
-shutdown** and restored on the next start. `Save+Compile` deliberately starts a
-changed program from the beginning. After a server crash the intermediate state
-is lost.
+shutdown** and restored on the next start. Uploading a changed program
+(external client) starts it from the beginning. After a server crash the
+intermediate state is lost.
