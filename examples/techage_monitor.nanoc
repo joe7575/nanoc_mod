@@ -22,7 +22,7 @@
 //   machine state(129): 1 run, 2 blocked, 3 standby, 5 fault,
 //                       6 stopped, 7 unloaded
 
-const SIGNAL = 11
+const SIGNAL = 12
 int32 chest_a = 4
 int32 chest_b = 5
 int32 out_chest = 8
