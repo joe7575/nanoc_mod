@@ -23,6 +23,7 @@ local storage = minetest.get_mod_storage()
 local RADIUS = 3
 local CYCLE_TIME = 0.2          -- seconds per timer tick
 local MAX_LINES = 40            -- keep only the last N terminal lines
+local MAX_LOG_LINES = 20        -- keep only the last N log() lines (in-game)
 
 -- Adaptive per-controller CPU budget (server-owner tunable, see settingtypes).
 -- The controller measures how long a tick really takes and grows/shrinks the
@@ -38,6 +39,7 @@ local VM_CYCLES_MIN   = tonumber(minetest.settings:get("nanoc_vm_cycles_min")) o
 local VM_CYCLES_MAX   = tonumber(minetest.settings:get("nanoc_vm_cycles_max")) or 100000
 
 local Output = {}               -- [hash] = terminal output buffer
+local Logs = {}                 -- [hash] = log() output buffer (in-game display)
 local Cpu = {}                  -- [hash] = { cycles = ..., last_log_us = ... }
 local Loaded = {}               -- [hash] = pos, all live VMs (for persistence)
 nanoc.controllers = {}          -- [hash] = pos, all controllers (for the bridge)
@@ -90,6 +92,13 @@ while (1) {
 ]]
 
 local function hash(pos) return H(pos) end
+
+-- Infotext: NanoC Controller "<name>" <node number>
+local function update_infotext(pos)
+	local meta = M(pos)
+	meta:set_string("infotext", 'NanoC Controller "' .. meta:get_string("name") ..
+		'" ' .. meta:get_string("node_number"))
+end
 
 -- Per-controller adaptive CPU state.
 local function cpu_state(pos)
@@ -156,6 +165,22 @@ local function clear_output(pos)
 	Output[hash(pos)] = ""
 end
 
+-- log() messages: kept per controller for the (simplified) in-game display.
+function nanoc.add_log(pos, text)
+	if text == nil or text == "" then return end
+	if text:sub(-1) ~= "\n" then text = text .. "\n" end
+	local h = hash(pos)
+	Logs[h] = keep_last_lines((Logs[h] or "") .. text, MAX_LOG_LINES)
+end
+
+function nanoc.get_log(pos)
+	return Logs[hash(pos)] or ""
+end
+
+function nanoc.clear_log(pos)
+	Logs[hash(pos)] = ""
+end
+
 -- public accessors (also used by the terminal node)
 function nanoc.get_output(pos)
 	return Output[hash(pos)] or ""
@@ -189,27 +214,26 @@ end
 
 local function formspec(pos)
 	local meta = M(pos)
-	local prog = meta:get_string("program")
-	local out = get_output(pos)
+	local name = meta:get_string("name")
+	local num = meta:get_string("node_number")
 	local running = meta:get_int("running") == 1 and "running" or "stopped"
-	return "size[12,11.2]" ..
-		"label[0.3,0.1;NanoC Controller (" .. running .. ")]" ..
-		"textarea[0.3,0.6;11.4,4.4;program;Program;" ..
-			minetest.formspec_escape(prog) .. "]" ..
-		"textarea[0.3,5.3;11.4,3.6;output;Output;" ..
-			minetest.formspec_escape(out) .. "]" ..
-		"button[0.3,9.2;2,0.8;save;Save+Compile]" ..
-		"button[2.4,9.2;2,0.8;run;Run]" ..
-		"button[4.5,9.2;2,0.8;stop;Stop]" ..
-		"button[6.6,9.2;2,0.8;reset;Reset]" ..
-		"button[8.7,9.2;2,0.8;clear;Clear]" ..
-		"button[10.8,9.2;1,0.8;token;Token]" ..
-		"label[0.3,10.35;Techage #" .. meta:get_string("node_number") ..
-			"   Token: only the owner (press 'Token')]"
+	return "size[10,7.4]" ..
+		"label[0.3,0.1;NanoC Controller \"" .. minetest.formspec_escape(name) ..
+			"\"  #" .. num .. "  (" .. running .. ")]" ..
+		"textarea[0.3,0.6;9.4,4.4;log;Log;" ..
+			minetest.formspec_escape(nanoc.get_log(pos)) .. "]" ..
+		"button[0.3,5.2;1.7,0.8;run;Run]" ..
+		"button[2.1,5.2;1.7,0.8;stop;Stop]" ..
+		"button[3.9,5.2;1.7,0.8;reset;Reset]" ..
+		"button[5.7,5.2;1.7,0.8;clear;Clear]" ..
+		"button[7.5,5.2;1.7,0.8;token;Token]" ..
+		"label[0.3,6.3;Name: set via the Techage Info Tool (sneak + place). " ..
+			"Code/terminal: external (VS Code / nanoc-tui).]"
 end
 
 local function ensure_vm(pos)
 	nanoc.controllers[hash(pos)] = pos
+	update_infotext(pos)
 	if lib.is_loaded(pos) then
 		Loaded[hash(pos)] = pos
 		return
@@ -302,6 +326,22 @@ minetest.register_node("nanoc:controller", {
 			{-6/32, -6/32, 10/32,  6/32,  6/32, 16/32},
 		},
 	},
+
+	-- Techage Info Tool (wrench) settings menu. Add further settings here.
+	ta4_formspec = {
+		{
+			type = "ascii",
+			name = "name",
+			label = "Name",
+			tooltip = "Controller name (shown in the infotext; helps to match VS Code projects)",
+			default = "",
+		},
+	},
+	ta_after_formspec = function(pos)
+		update_infotext(pos)
+		M(pos):set_string("formspec", formspec(pos))
+	end,
+
 	paramtype = "light",
 	paramtype2 = "facedir",
 	groups = { choppy = 2, cracky = 2, crumbly = 2 },
@@ -321,7 +361,7 @@ minetest.register_node("nanoc:controller", {
 		meta:set_string("node_number", tostring(own_num or ""))
 		meta:set_string("owner", placer and placer:get_player_name() or "")
 		meta:set_string("formspec", formspec(pos))
-		meta:set_string("infotext", "NanoC Controller "..own_num)
+		update_infotext(pos)
 	end,
 
 	after_dig_node = function(pos)
@@ -333,6 +373,7 @@ minetest.register_node("nanoc:controller", {
 		storage:set_string(hash(pos), "")
 		nanoc.tech.del_mem(pos)
 		Output[hash(pos)] = nil
+		Logs[hash(pos)] = nil
 		Cpu[hash(pos)] = nil
 	end,
 
@@ -345,12 +386,7 @@ minetest.register_node("nanoc:controller", {
 			return
 		end
 		local meta = M(pos)
-		if fields.program then
-			meta:set_string("program", fields.program)
-		end
-		if fields.save then
-			compile(pos)
-		elseif fields.run then
+		if fields.run then
 			if compile(pos) then
 				start(pos)
 			end
@@ -358,9 +394,8 @@ minetest.register_node("nanoc:controller", {
 			stop(pos)
 		elseif fields.reset then
 			lib.reset(pos)
-			clear_output(pos)
 		elseif fields.clear then
-			clear_output(pos)
+			nanoc.clear_log(pos)
 		elseif fields.token then
 			local owner = meta:get_string("owner")
 			local pname = player and player:get_player_name()

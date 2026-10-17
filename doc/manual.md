@@ -22,12 +22,17 @@ control characters (`\a \b \t \n \r`) and escape sequences (`\27…`, e.g.
 
 ## Usage
 
-1. Place a **controller** and right-click it.
-2. Write the program in the upper field, press **Save+Compile**, then **Run**.
-3. Place a **`nanoc:terminal`** nearby and right-click it – it shows the
-   output continuously (no key press needed).
-
-Buttons: `Save+Compile`, `Run`, `Stop`, `Reset`, `Clear`.
+1. Place a **controller**. Code and terminal are handled externally (VS Code
+   debugger or `nanoc-tui`); upload/run the program from there.
+2. Right-click the controller to open its **log** panel. It shows only the
+   `log()` messages; buttons: **Run**, **Stop**, **Reset**, **Clear** (log),
+   **Token**.
+3. Give the controller a **name** with the Techage Info Tool: sneak + place on
+   the controller. The name and node number appear in the infotext
+   (`NanoC Controller "<name>" <number>`), which helps match controllers to
+   VS Code projects.
+4. Optionally place a **`nanoc:terminal`** nearby and right-click it – it shows
+   the `printf` output continuously (no key press needed).
 
 ## Language (examples)
 

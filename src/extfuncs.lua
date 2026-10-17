@@ -84,6 +84,9 @@ end
 -- In-game it is a no-op for now (later: a local log store in the controller).
 Functions[lib.define_xfunc("log", 1, {2}, 0)] = function(pos)
 	local text = lib.pop_str(pos)
+	if nanoc.add_log then
+		nanoc.add_log(pos, text)
+	end
 	if nanoc.bridge and nanoc.bridge.log then
 		nanoc.bridge.log(pos, text)
 	end

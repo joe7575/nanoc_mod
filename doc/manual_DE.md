@@ -22,12 +22,17 @@ Escape-Sequenzen (`\27…`, z. B. `\27\1` Clear, `\27\2<row>`, `\27\3<font>`,
 
 ## Bedienung
 
-1. **Controller** platzieren und rechtsklicken.
-2. Programm in das obere Feld schreiben, **Save+Compile**, dann **Run**.
-3. **`nanoc:terminal`** in der Nähe platzieren und rechtsklicken – es zeigt
-   die Ausgabe laufend (ohne Tastendruck) an.
-
-Buttons: `Save+Compile`, `Run`, `Stop`, `Reset`, `Clear`.
+1. **Controller** platzieren. Code und Terminal laufen **extern** (VS-Code-
+   Debugger oder `nanoc-tui`); Programm dort hochladen/starten.
+2. Rechtsklick auf den Controller öffnet das **Log-Panel**. Es zeigt nur die
+   `log()`-Meldungen; Buttons: **Run**, **Stop**, **Reset**, **Clear** (Log),
+   **Token**.
+3. Dem Controller einen **Namen** geben über den Techage Info Tool
+   (Schraubenschlüssel): schleichen + platzieren auf dem Controller. Name und
+   Knotennummer stehen im Infotext (`NanoC Controller "<Name>" <Nummer>`) – so
+   lassen sich Controller den VS-Code-Projekten zuordnen.
+4. Optional ein **`nanoc:terminal`** in der Nähe platzieren und rechtsklicken –
+   es zeigt die `printf`-Ausgabe laufend (ohne Tastendruck).
 
 ## Sprache (Beispiele)
 
