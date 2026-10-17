@@ -140,6 +140,9 @@ local function release_focus(c)
 end
 
 local function close_client(c)
+	if c.authed and c.pos and nanoc.add_log then
+		nanoc.add_log(c.pos, "external client disconnected")
+	end
 	release_focus(c)
 	lib.net_close(c.id)
 	clients[c.id] = nil
@@ -338,6 +341,9 @@ local function do_handshake(c, payload)
 	c.pos = pos
 	c.authed = true
 	send_frame(c, CH_CTRL, string.char(HSTAT.OK) .. u32le(VERSION))
+	if nanoc.add_log then
+		nanoc.add_log(pos, "external client connected")
+	end
 	local out = nanoc.get_output(pos)
 	if out and out ~= "" then
 		send_frame(c, CH_TERM, out)
