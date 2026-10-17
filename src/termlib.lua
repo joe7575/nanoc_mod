@@ -8,8 +8,8 @@
 	AGPL v3
 	See LICENSE.txt for more information
 
-	Optional termlib integration: use a termlib terminal as the NanoC
-	controller's display + keyboard.
+	Termlib integration: the termlib terminal is the NanoC controller's
+	display + keyboard.
 
 	- output: the controller's text is written to the connected terminal
 	- input:  a command typed on the terminal goes into the VM input buffer

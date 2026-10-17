@@ -217,16 +217,17 @@ local function formspec(pos)
 	local name = meta:get_string("name")
 	local num = meta:get_string("node_number")
 	local running = meta:get_int("running") == 1 and "running" or "stopped"
-	return "size[10,7.4]" ..
-		"label[0.3,0.1;NanoC Controller \"" .. minetest.formspec_escape(name) ..
-			"\"  #" .. num .. "  (" .. running .. ")]" ..
-		"textarea[0.3,0.6;9.4,4.4;log;Log;" ..
+	return "size[9.5,7.1]" ..
+		"box[0,-0.1;9.2,0.5;#c6e8ff]" ..
+		"label[0.2,-0.1;" .. minetest.colorize( "#000000", 'NanoC Controller "' .. minetest.formspec_escape(name)) .. '"]' ..
+		"label[0.1,0.5; Controller: " .. running .. "]" ..
+		"textarea[0.3,1.5;9.4,4.4;log;Log:;" ..
 			minetest.formspec_escape(nanoc.get_log(pos)) .. "]" ..
-		"button[0.3,5.2;1.7,0.8;run;Run]" ..
-		"button[2.1,5.2;1.7,0.8;stop;Stop]" ..
-		"button[3.9,5.2;1.7,0.8;reset;Reset]" ..
-		"button[5.7,5.2;1.7,0.8;clear;Clear]" ..
-		"button[7.5,5.2;1.7,0.8;token;Token]" ..
+		"button[0.3,5.5;1.7,0.8;run;Run]" ..
+		"button[2.1,5.5;1.7,0.8;stop;Stop]" ..
+		"button[3.9,5.5;1.7,0.8;reset;Reset]" ..
+		"button[5.7,5.5;1.7,0.8;clear;Clear]" ..
+		"button[7.5,5.5;1.7,0.8;token;Token]" ..
 		"label[0.3,6.3;Name: set via the Techage Info Tool (sneak + place). " ..
 			"Code/terminal: external (VS Code / nanoc-tui).]"
 end

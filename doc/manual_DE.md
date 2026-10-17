@@ -8,31 +8,32 @@ sich Techage-/TechPack-Maschinen direkt (per Knotennummer) steuern.
 
 | Node | Zweck |
 |---|---|
-| `nanoc:controller` | Der Computer (Programm-Editor + Ausführung) |
-| `nanoc:terminal` | Live-Anzeige der Terminal-Ausgabe des Controllers |
+| `nanoc:controller` | Der Computer (VM-Ausführung + Log-Panel) |
 
-Optional kann ein `termlib:terminal1` (aus der `termlib`-Mod) als Anzeige
-**und** Tastatur dienen – statt `nanoc:terminal`. Anschließen wie gewohnt:
-Terminal in die Hand nehmen, Controller linksklicken, platzieren, `@connect`.
-Getippte Kommandos kommen im Programm über `key()` an. Die Controller-Ausgabe
-geht an termlib, daher wirken Steuerzeichen (`\a \b \t \n \r`) und
-Escape-Sequenzen (`\27…`, z. B. `\27\1` Clear, `\27\2<row>`, `\27\3<font>`,
-`\27\4<cmd>\n`, `\27\5<1|2>`, `\27\6<pos><row>`, `\27\7`) direkt – siehe
+Das Terminal ist ein **`termlib:terminal1`** (aus der benötigten `termlib`-Mod):
+es dient als Anzeige **und** Tastatur. Anschließen wie gewohnt: Terminal in die
+Hand nehmen, Controller linksklicken, platzieren, öffnen, `@connect`. Getippte
+Kommandos kommen im Programm über `key()` an. Die Controller-Ausgabe geht an
+termlib, daher wirken Steuerzeichen (`\a \b \t \n \r`) und Escape-Sequenzen
+(`\27…`, z. B. `\27\1` Clear, `\27\2<row>`, `\27\3<font>`, `\27\4<cmd>\n`,
+`\27\5<1|2>`, `\27\6<pos><row>`, `\27\7`) direkt – siehe
 `examples/termlib_demo.nanoc`.
 
 ## Bedienung
 
-1. **Controller** platzieren. Code und Terminal laufen **extern** (VS-Code-
-   Debugger oder `nanoc-tui`); Programm dort hochladen/starten.
-2. Rechtsklick auf den Controller öffnet das **Log-Panel**. Es zeigt nur die
+1. **Controller** und ein **`termlib:terminal1`** platzieren; Terminal
+   verbinden (in die Hand nehmen, Controller linksklicken, platzieren, öffnen,
+   `@connect`).
+2. Code wird **extern** bearbeitet/debuggt (VS-Code-Debugger oder `nanoc-tui`)
+   und von dort hochgeladen; das Terminal zeigt die `printf`-Ausgabe und nimmt
+   Tastatureingaben an.
+3. Rechtsklick auf den Controller öffnet das **Log-Panel**. Es zeigt nur die
    `log()`-Meldungen; Buttons: **Run**, **Stop**, **Reset**, **Clear** (Log),
    **Token**.
-3. Dem Controller einen **Namen** geben über den Techage Info Tool
+4. Dem Controller einen **Namen** geben über den Techage Info Tool
    (Schraubenschlüssel): schleichen + platzieren auf dem Controller. Name und
    Knotennummer stehen im Infotext (`NanoC Controller "<Name>" <Nummer>`) – so
    lassen sich Controller den VS-Code-Projekten zuordnen.
-4. Optional ein **`nanoc:terminal`** in der Nähe platzieren und rechtsklicken –
-   es zeigt die `printf`-Ausgabe laufend (ohne Tastendruck).
 
 ## Sprache (Beispiele)
 

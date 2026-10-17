@@ -6,7 +6,9 @@ Pure-Lua glue only; the VM is in `nanoclib`.
 src/
   controller.lua        -- CPU node, one VM per node, on_timer cycle budget,
                            techage interface (direct node numbers)
-  terminal.lua          -- live in-game terminal for the controller output
+  extfuncs.lua          -- synchronous techage xfuncs (ta_send_cmd/ta_req_data),
+                           log(), nanoc.run/nanoc.step
+  termlib.lua           -- termlib terminal as display + keyboard
   capabilities.lua      -- Beduino topic catalog for TA4/TA5 nodes
   inspect.lua           -- nanoc.inspect / SCAN (TA4 graph for AI clients)
   bridge.lua            -- external TCP bridge (protocol v1) + focus + limits

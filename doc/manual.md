@@ -8,31 +8,31 @@ Techage/TechPack machines directly (by node number).
 
 | Node | Purpose |
 |---|---|
-| `nanoc:controller` | The computer (program editor + execution) |
-| `nanoc:terminal` | Live display of the controller's terminal output |
+| `nanoc:controller` | The computer (VM execution + log panel) |
 
-Optionally, a `termlib:terminal1` (from the `termlib` mod) can serve as the
-display **and** keyboard instead of `nanoc:terminal` (connect it as usual:
-wield, left-click the controller, place, `@connect`). Typed commands arrive in
-the program via `key()`. The controller's output is passed to termlib, so
-control characters (`\a \b \t \n \r`) and escape sequences (`\27…`, e.g.
-`\27\1` clear, `\27\2<row>`, `\27\3<font>`, `\27\4<cmd>\n`, `\27\5<1|2>`,
-`\27\6<pos><row>`, `\27\7`) work directly – see
+The terminal is a **`termlib:terminal1`** (from the required `termlib` mod):
+it serves as the display **and** keyboard. Connect it as usual: wield the
+terminal, left-click the controller, place it, open it and type `@connect`.
+Typed commands arrive in the program via `key()`. The controller's output is
+passed to termlib, so control characters (`\a \b \t \n \r`) and escape
+sequences (`\27…`, e.g. `\27\1` clear, `\27\2<row>`, `\27\3<font>`,
+`\27\4<cmd>\n`, `\27\5<1|2>`, `\27\6<pos><row>`, `\27\7`) work directly – see
 `examples/termlib_demo.nanoc`.
 
 ## Usage
 
-1. Place a **controller**. Code and terminal are handled externally (VS Code
-   debugger or `nanoc-tui`); upload/run the program from there.
-2. Right-click the controller to open its **log** panel. It shows only the
+1. Place a **controller** and a **`termlib:terminal1`**; connect the terminal
+   (wield, left-click the controller, place, open, `@connect`).
+2. Code is edited/debugged externally (VS Code debugger or `nanoc-tui`) and
+   uploaded from there; the terminal shows the `printf` output and accepts
+   keyboard input.
+3. Right-click the controller to open its **log** panel. It shows only the
    `log()` messages; buttons: **Run**, **Stop**, **Reset**, **Clear** (log),
    **Token**.
-3. Give the controller a **name** with the Techage Info Tool: sneak + place on
+4. Give the controller a **name** with the Techage Info Tool: sneak + place on
    the controller. The name and node number appear in the infotext
    (`NanoC Controller "<name>" <number>`), which helps match controllers to
    VS Code projects.
-4. Optionally place a **`nanoc:terminal`** nearby and right-click it – it shows
-   the `printf` output continuously (no key press needed).
 
 ## Language (examples)
 

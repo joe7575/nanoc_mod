@@ -48,7 +48,6 @@ minetest.log("action", "[nanoc] loaded (nanoclib " .. tostring(nanoclib.version(
 dofile(P .. "/src/tech/wrapper.lua")
 dofile(P .. "/src/extfuncs.lua")
 dofile(P .. "/src/controller.lua")
-dofile(P .. "/src/terminal.lua")
 dofile(P .. "/src/termlib.lua")
 dofile(P .. "/src/capabilities.lua")
 dofile(P .. "/src/inspect.lua")
