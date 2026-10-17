@@ -17,6 +17,31 @@ mod.
 - `secure.trusted_mods` must contain `nanoc`.
 - Required mods: **`techage`** (pulls in `tubelib2`) and **`termlib`**.
 
+## minetest.conf
+
+NanoC loads its C module through the insecure environment, so `nanoc` must be
+trusted. For the external debugger/terminal, enable the TCP bridge. Add these
+to `minetest.conf`:
+
+```ini
+# allow the mod to load nanoclib (insecure environment)
+secure.trusted_mods = <existing mods>,nanoc
+
+# external terminal/debugger bridge (VS Code / nanoc-tui)
+nanoc_bridge_enable = true
+nanoc_bridge_port = 41100
+nanoc_bridge_bind = 127.0.0.1
+```
+
+Each setting must be on its **own line** (`key = value`); do not put several
+settings on one line separated by commas. `secure.trusted_mods` itself takes a
+comma-separated list of mod names.
+
+For access from another PC in the LAN use `nanoc_bridge_bind = 0.0.0.0` (test
+phase only: plaintext, token-only; never forward the port on the router) — see
+`doc/manual.md`. All settings and defaults are listed in
+[`settingtypes.txt`](settingtypes.txt).
+
 ## Player manual
 
 Documentation is English by default; a German translation is provided.
