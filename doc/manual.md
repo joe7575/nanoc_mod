@@ -104,6 +104,8 @@ if (x > 0) { ... } else { ... }
 while (i < 10) { i++ }
 for i = 1 to 10 { printf("%d\n", i) }
 for i = 10 to 0 step -1 { ... }
+break            // leave the innermost for/while loop (C-style)
+breakpoint()     // debugger breakpoint (the former 'break')
 dispatch(expr) { func0, func1, func2 }   // call by 0-based index
 end      // terminate the program
 reti     // return from an interrupt handler
@@ -131,6 +133,9 @@ func sum(int32[] arr, int32 n) {
 - numeric: `rnd(n)`, `abs(n)`
 - strings: `len(s$)`, `left$(s$,n)`, `right$(s$,n)`, `mid$(s$,start,len)`,
   `str$(n)`, `hex$(n)`, `instr(start,s$,find$)`, `string$(n,char$)`
+  (the trailing `$` is optional: `str8 name`, `left(...)`, `hex(...)`, …)
+- string <-> array: `str2arr(arr,offs,"text")` copies a string incl. `\0` into
+  a byte array; `arr2str$(arr,offs)` / `arr2str(...)` reads it back
 - byte / memory: `u8(arr,offs[,val])`, `u16(...)`, `u32(...)`,
   `copy(src,soff,dst,doff,len)`, `free()`
 
