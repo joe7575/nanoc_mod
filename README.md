@@ -70,6 +70,9 @@ Common causes:
 - Wrong host/port/token. The token is per controller (press **Token** in the
   controller form; only the owner may create it).
 - The socket is IPv4-only; use an IPv4 address.
+- The controller's **mapblock must be loaded** (a player nearby, or forceload).
+  Otherwise the handshake/attach is refused with `NOT_LOADED` and control
+  commands answer `NOT_LOADED`. This ties CPU/techage I/O to loaded areas.
 
 Verification:
 

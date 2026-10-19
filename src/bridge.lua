@@ -50,8 +50,14 @@ local CMD = { ATTACH = 1, DETACH = 2, STATE = 3, BP_SET = 4, BP_CLR = 5,
 	PROG_GET = 0x20, PROG_SET = 0x21, SCAN = 0x22, CATALOG = 0x23 }
 local EVT = { HALTED = 0x80, ENDED = 0x81, DETACHED = 0x82 }
 local STS = { OK = 0, END = 1, NOT_ATTACHED = 2, NO_SCRIPT = 3, PARAM = 4,
-	NOT_HALTED = 5, FULL = 6, NO_CODE = 7, DENIED = 8, UNKNOWN = 9 }
-local HSTAT = { OK = 0, BAD_PROTOCOL = 1, BAD_TOKEN = 2, BUSY = 3 }
+	NOT_HALTED = 5, FULL = 6, NO_CODE = 7, DENIED = 8, UNKNOWN = 9,
+	NOT_LOADED = 10 }
+local HSTAT = { OK = 0, BAD_PROTOCOL = 1, BAD_TOKEN = 2, BUSY = 3, NOT_LOADED = 4 }
+
+-- A controller can only be used while its mapblock is loaded (see controller).
+local function is_active(pos)
+	return not nanoc.controller_active or nanoc.controller_active(pos)
+end
 
 -- ---- byte helpers (LuaJIT has no string.pack) ----
 
@@ -193,6 +199,13 @@ local function handle_debug(c, payload)
 	local w = r_words(payload)
 	local cmd = w[1]
 	local resp
+
+	-- require a loaded/active controller (mapblock loaded) for all commands
+	-- except detaching and the static catalog
+	if cmd ~= CMD.DETACH and cmd ~= CMD.CATALOG and not is_active(c.pos) then
+		send_frame(c, CH_DEBUG, words({ cmd, STS.NOT_LOADED }))
+		return
+	end
 
 	-- focus arbitration: ATTACH claims control; other control commands need it
 	if cmd == CMD.ATTACH then
@@ -338,6 +351,10 @@ local function do_handshake(c, payload)
 		send_frame(c, CH_CTRL, string.char(HSTAT.BAD_TOKEN) .. u32le(VERSION))
 		return false
 	end
+	if not is_active(pos) then
+		send_frame(c, CH_CTRL, string.char(HSTAT.NOT_LOADED) .. u32le(VERSION))
+		return false
+	end
 	c.pos = pos
 	c.authed = true
 	send_frame(c, CH_CTRL, string.char(HSTAT.OK) .. u32le(VERSION))
@@ -461,7 +478,7 @@ minetest.register_globalstep(function(dtime)
 							alive = false   -- input flood
 							break
 						end
-						if c.pos then
+						if c.pos and is_active(c.pos) then
 							lib.push_key(c.pos, f.payload)
 						end
 					end

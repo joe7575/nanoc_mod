@@ -80,6 +80,13 @@ function nanoc.dbg_pause(pos) nanoc.dbg[H(pos)] = true end
 function nanoc.dbg_resume(pos) nanoc.dbg[H(pos)] = nil end
 function nanoc.dbg_is_paused(pos) return nanoc.dbg[H(pos)] == true end
 
+-- A controller is active only while its mapblock is loaded (and the VM exists).
+-- This keeps the CPU/techage I/O tied to loaded areas: no player nearby (and no
+-- forceload) means no debugging/starting.
+function nanoc.controller_active(pos)
+	return minetest.get_node_or_nil(pos) ~= nil and lib.is_loaded(pos)
+end
+
 local DEFAULT_PROGRAM = [[
 // NanoC controller demo
 int32 count = 0

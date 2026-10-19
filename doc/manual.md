@@ -245,6 +245,9 @@ chests empty, output chest full, autocrafter blocked/fault).
   your network. Ask the server admin (admin setup and troubleshooting: see the
   mod's `README.md`).
 - The bridge runs on the **server**, not in your game client.
+- The controller must be **loaded**: stay near it (or have another player /
+  forceload keep the area loaded). If the area is unloaded (you are far away or
+  logged out), the client reports `NOT_LOADED`.
 
 ## Persistence
 

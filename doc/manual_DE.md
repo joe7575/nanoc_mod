@@ -247,6 +247,9 @@ Ein komplettes Überwachungs-Beispiel: `examples/techage_monitor.nanoc`
   erreichbar. Frage den Server-Admin (Admin-Setup und Fehlerdiagnose: siehe
   `README.md` der Mod).
 - Die Bridge läuft auf dem **Server**, nicht im Spiel-Client.
+- Der Controller muss **geladen** sein: bleib in seiner Nähe (oder ein anderer
+  Spieler / Forceload hält das Gebiet geladen). Ist das Gebiet entladen (du bist
+  weit weg oder ausgeloggt), meldet der Client `NOT_LOADED`.
 
 ## Persistenz
 
