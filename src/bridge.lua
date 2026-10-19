@@ -503,4 +503,51 @@ minetest.register_on_shutdown(function()
 	end
 end)
 
+-- Admin overview of the bridge clients (debugger/TUI) and a way to free slots.
+local function client_line(c)
+	local meta = minetest.get_meta(c.pos)
+	local cname = meta:get_string("name")
+	if cname == "" then cname = "?" end
+	local num = meta:get_string("node_number")
+	local owner = meta:get_string("owner")
+	if owner == "" then owner = "?" end
+	local role = c.is_owner and "debug" or "viewer"
+	local idle = math.floor(minetest.get_gametime() - (c.last_activity or 0))
+	return string.format("#%d  %s [#%s]  owner=%s  role=%s  pos=%s  idle=%ss",
+		c.id, cname, num, owner, role, minetest.pos_to_string(c.pos), idle)
+end
+
+minetest.register_chatcommand("nanoc_bridge", {
+	description = "List NanoC bridge clients, or kick one to free a slot",
+	params = "[kick <id>]",
+	privs = { server = true },
+	func = function(name, param)
+		local args = param:split(" ")
+		if args[1] == "kick" then
+			local id = tonumber(args[2] or "")
+			local c = id and clients[id]
+			if not c then
+				return false, "NanoC: no such client"
+			end
+			close_client(c)
+			minetest.log("action", "[nanoc] " .. name ..
+				" kicked bridge client #" .. id)
+			return true, "NanoC: kicked client #" .. id
+		end
+		local ids = {}
+		for id, c in pairs(clients) do
+			if c.authed then ids[#ids + 1] = id end
+		end
+		table.sort(ids)
+		if #ids == 0 then
+			return true, "NanoC: no external clients connected"
+		end
+		local lines = { "NanoC bridge clients (" .. #ids .. "/" .. MAX_CLIENTS .. "):" }
+		for _, id in ipairs(ids) do
+			lines[#lines + 1] = client_line(clients[id])
+		end
+		return true, table.concat(lines, "\n")
+	end,
+})
+
 minetest.log("action", "[nanoc] bridge listening on " .. BIND .. ":" .. PORT)

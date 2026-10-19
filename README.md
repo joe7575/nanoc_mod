@@ -102,6 +102,20 @@ Security: the bridge is plaintext and protected only by the token. Use it only
 in a trusted LAN for now; do not forward the port on the router and add TLS
 before exposing it beyond your network.
 
+## Bridge clients
+
+At most `nanoc_bridge_max_clients` (default **8**) clients can be connected at
+once (debugger + terminal/TUI). To see who is connected and to free a slot:
+
+```
+/nanoc_bridge              # list: id, controller name/number, owner, role, idle
+/nanoc_bridge kick <id>    # disconnect that client
+```
+
+Requires the `server` privilege. `role` is `debug` for the controller's debug
+owner and `viewer` for the other clients. The protocol does not transmit whether
+a client is VS Code or `nanoc-tui` (only the controller token is known).
+
 ## CPU budget (server owners)
 
 NanoC does not enforce a hard command/RAM limit and never penalises the owner.
