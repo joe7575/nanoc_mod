@@ -155,6 +155,7 @@ func sum(int32[] arr, int32 n) {
 | `ta_signal(number, 0\|1)` | On/off signal (shortcut) |
 | `ta_req_data(number, topic, a, b, c)` | Synchronous request → numeric result |
 | `ta_req_data_s(number, topic, a, b, c)` | Synchronous request → string result |
+| `ta_req_data_str(number, topic, "text")` | Synchronous request with string payload → numeric result |
 | `ta_recv()` | 1 if a command arrived (else 0) |
 | `ta_port()`, `ta_topic()`, `ta_payload(i)` | read the received command |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | read the received signal |
@@ -190,6 +191,7 @@ int32 chest = 5                             // a techage node number
 
 int32 state = ta_req_data(chest, 131, 0, 0, 0)   // synchronous request -> number
 str8  name$ = ta_req_data_s(chest, 128, 0, 0, 0) // synchronous request -> string
+int32 cnt   = ta_req_data_str(chest, 192, "techage:lighter") // string payload -> number
 
 int32 sts = ta_send_cmd(chest, 1, 1, 0, 0)       // command (topic < 128) -> status
 ta_send_cmd_s(chest, 67, "text")                 // string command (displays)

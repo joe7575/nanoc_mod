@@ -17,6 +17,7 @@
 	ta_send_cmd_s(number, topic, "text")  -> status  (command, string payload)
 	ta_req_data(number, topic, a, b, c)   -> number  (request, numeric result)
 	ta_req_data_s(number, topic, a, b, c) -> string  (request, string result)
+	ta_req_data_str(number, topic, "text") -> number (request, string payload)
 
 ]]--
 
@@ -76,6 +77,21 @@ if minetest.global_exists("techage") then
 			lib.push_str(pos, resp)
 		else
 			lib.push_str(pos, "")
+		end
+	end
+
+	-- Request data with a string payload -> numeric result, e.g. chest item
+	-- count: ta_req_data_str(chest, 192, "techage:lighter") (topic 192).
+	Functions[lib.define_xfunc("ta_req_data_str", 3, {1, 1, 2}, 1)] = function(pos)
+		local text = lib.pop_str(pos)
+		local topic = lib.pop_num(pos)
+		local number = lib.pop_num(pos)
+		local sts, resp = techage.beduino_request_data(
+			own_num(pos), number, topic, text)
+		if sts == 0 and type(resp) == "table" then
+			lib.push_num(pos, resp[1] or 0)
+		else
+			lib.push_num(pos, -1)
 		end
 	end
 end

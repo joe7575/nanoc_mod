@@ -157,6 +157,7 @@ func sum(int32[] arr, int32 n) {
 | `ta_signal(nummer, 0\|1)` | Signal (on/off) senden (Kurzform) |
 | `ta_req_data(nummer, topic, a, b, c)` | Synchrone Anfrage → Zahl |
 | `ta_req_data_s(nummer, topic, a, b, c)` | Synchrone Anfrage → String |
+| `ta_req_data_str(nummer, topic, "text")` | Synchrone Anfrage mit String-Payload → Zahl |
 | `ta_recv()` | 1, wenn ein Kommando ankam (sonst 0) |
 | `ta_port()`, `ta_topic()`, `ta_payload(i)` | das empfangene Kommando lesen |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | das empfangene Signal lesen |
@@ -192,6 +193,7 @@ int32 kiste = 5                              // eine Techage-Knotennummer
 
 int32 zustand = ta_req_data(kiste, 131, 0, 0, 0) // synchrone Anfrage -> Zahl
 str8  name$   = ta_req_data_s(kiste, 128, 0, 0, 0)// synchrone Anfrage -> String
+int32 anzahl  = ta_req_data_str(kiste, 192, "techage:lighter") // String-Payload -> Zahl
 
 int32 sts = ta_send_cmd(kiste, 1, 1, 0, 0)       // Kommando (topic < 128) -> Status
 ta_send_cmd_s(kiste, 67, "text")                 // String-Kommando (Displays)
