@@ -13,11 +13,12 @@
 	loop returns to Lua, the handler does the techage call immediately and
 	pushes the result, then the VM resumes.
 
-	ta_send_cmd(number, topic, a, b, c)   -> status  (command, numeric payload)
-	ta_send_cmd_s(number, topic, "text")  -> status  (command, string payload)
-	ta_req_data(number, topic, a, b, c)   -> number  (request, numeric result)
-	ta_req_data_s(number, topic, a, b, c) -> string  (request, string result)
-	ta_req_data_str(number, topic, "text") -> number (request, string payload)
+	ta_send_cmd(number, topic, payload)   -> status
+	ta_req_data(number, topic, payload)   -> number
+	ta_req_data_s(number, topic, payload) -> string
+
+	payload is a string for the Beduino string-topic range (>= 64 for
+	commands, >= 192 for requests), otherwise an int32[] array reference.
 
 ]]--
 
@@ -30,37 +31,33 @@ local function own_num(pos)
 	return M(pos):get_string("node_number")
 end
 
-local function pop5(pos)
-	local c = lib.pop_num(pos)
-	local b = lib.pop_num(pos)
-	local a = lib.pop_num(pos)
-	local topic = lib.pop_num(pos)
-	local number = lib.pop_num(pos)
-	return number, topic, a, b, c
-end
-
 if minetest.global_exists("techage") then
-	-- Send a command (topic < 128). Returns the status: 0 = ok, else error.
-	Functions[lib.define_xfunc("ta_send_cmd", 5, {1, 1, 1, 1, 1}, 1)] = function(pos)
-		local number, topic, a, b, c = pop5(pos)
-		local sts = techage.beduino_send_cmnd(own_num(pos), number, topic, {a, b, c})
-		lib.push_num(pos, tonumber(sts) or 0)
+	-- Payload is a string for topics >= str_from, otherwise an int32[] array.
+	local function pop_payload(pos, topic, str_from)
+		if topic >= str_from then
+			return lib.pop_str(pos)
+		end
+		return lib.pop_arr(pos)
 	end
 
-	-- Send a command with a string payload (e.g. pusher config, display text).
-	Functions[lib.define_xfunc("ta_send_cmd_s", 3, {1, 1, 2}, 1)] = function(pos)
-		local text = lib.pop_str(pos)
+	-- ta_send_cmd(number, topic, payload) -> status
+	-- String payload for topic >= 64, int32[] otherwise.
+	Functions[lib.define_xfunc("ta_send_cmd", 3, {1, 1, 4}, 1)] = function(pos)
+		local payload = pop_payload(pos, lib.peek_num(pos, 2), 64)
 		local topic = lib.pop_num(pos)
 		local number = lib.pop_num(pos)
-		local sts = techage.beduino_send_cmnd(own_num(pos), number, topic, text)
+		local sts = techage.beduino_send_cmnd(own_num(pos), number, topic, payload)
 		lib.push_num(pos, tonumber(sts) or 0)
 	end
 
-	-- Request data (topic >= 128) -> numeric result.
-	Functions[lib.define_xfunc("ta_req_data", 5, {1, 1, 1, 1, 1}, 1)] = function(pos)
-		local number, topic, a, b, c = pop5(pos)
+	-- ta_req_data(number, topic, payload) -> number
+	-- String payload for topic >= 192 (e.g. chest item count), int32[] otherwise.
+	Functions[lib.define_xfunc("ta_req_data", 3, {1, 1, 4}, 1)] = function(pos)
+		local payload = pop_payload(pos, lib.peek_num(pos, 2), 192)
+		local topic = lib.pop_num(pos)
+		local number = lib.pop_num(pos)
 		local sts, resp = techage.beduino_request_data(
-			own_num(pos), number, topic, {a, b, c})
+			own_num(pos), number, topic, payload)
 		if sts == 0 and type(resp) == "table" then
 			lib.push_num(pos, resp[1] or 0)
 		else
@@ -68,30 +65,17 @@ if minetest.global_exists("techage") then
 		end
 	end
 
-	-- Request data (topic >= 128) -> string result.
-	Functions[lib.define_xfunc("ta_req_data_s", 5, {1, 1, 1, 1, 1}, 2)] = function(pos)
-		local number, topic, a, b, c = pop5(pos)
+	-- ta_req_data_s(number, topic, payload) -> string
+	Functions[lib.define_xfunc("ta_req_data_s", 3, {1, 1, 4}, 2)] = function(pos)
+		local payload = pop_payload(pos, lib.peek_num(pos, 2), 192)
+		local topic = lib.pop_num(pos)
+		local number = lib.pop_num(pos)
 		local sts, resp = techage.beduino_request_data(
-			own_num(pos), number, topic, {a, b, c})
+			own_num(pos), number, topic, payload)
 		if sts == 0 and type(resp) == "string" then
 			lib.push_str(pos, resp)
 		else
 			lib.push_str(pos, "")
-		end
-	end
-
-	-- Request data with a string payload -> numeric result, e.g. chest item
-	-- count: ta_req_data_str(chest, 192, "techage:lighter") (topic 192).
-	Functions[lib.define_xfunc("ta_req_data_str", 3, {1, 1, 2}, 1)] = function(pos)
-		local text = lib.pop_str(pos)
-		local topic = lib.pop_num(pos)
-		local number = lib.pop_num(pos)
-		local sts, resp = techage.beduino_request_data(
-			own_num(pos), number, topic, text)
-		if sts == 0 and type(resp) == "table" then
-			lib.push_num(pos, resp[1] or 0)
-		else
-			lib.push_num(pos, -1)
 		end
 	end
 end

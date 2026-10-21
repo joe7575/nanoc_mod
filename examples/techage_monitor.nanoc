@@ -14,9 +14,11 @@
 //   out_chest         : output chest      (e.g. 8)
 //   crafter           : autocrafter       (e.g. 6)
 //
-// ta_req_data(number, topic, a, b, c) sends a request and returns the numeric
-// result directly (synchronous). ta_send_cmd(number, topic, a, b, c) sends a
-// command and returns the status (0 = ok).
+// Techage calls (synchronous):
+//   ta_req_data(number, topic, payload)   -> numeric result
+//   ta_send_cmd(number, topic, payload)   -> status (0 = ok)
+//   payload is an int32[] array for numeric topics, or a string for the
+//   Beduino string topics (>= 192 for requests, >= 64 for commands).
 // Topic values (BEP 005):
 //   chest state  (131): 0 = empty, 1 = loaded, 2 = full
 //   machine state(129): 1 run, 2 blocked, 3 standby, 5 fault,
@@ -28,6 +30,9 @@ int32 chest_b = 5
 int32 out_chest = 8
 int32 crafter = 6
 int32 tmp = 0
+
+int32 noarg[0]      // empty payload for simple requests
+int32 col[0]        // signal tower color
 
 int32 cycle = 0
 
@@ -41,10 +46,10 @@ func int32 blinky(int32 cnt) {
 printf("\27\1") // Clearscreen
 
 while (1) {
-    int32 a = ta_req_data(chest_a, 131, 0, 0, 0)
-    int32 b = ta_req_data(chest_b, 131, 0, 0, 0)
-    int32 o = ta_req_data(out_chest, 131, 0, 0, 0)
-    int32 c = ta_req_data(crafter, 129, 0, 0, 0)
+    int32 a = ta_req_data(chest_a, 131, noarg)
+    int32 b = ta_req_data(chest_b, 131, noarg)
+    int32 o = ta_req_data(out_chest, 131, noarg)
+    int32 c = ta_req_data(crafter, 129, noarg)
 
     if (a == 0) {
         printf("ALARM: input chest A empty!\n")
@@ -63,7 +68,9 @@ while (1) {
     }
 
     cycle = cycle + 1
-    printf("Lampe = %d\n", ta_send_cmd(SIGNAL, 2, blinky(cycle)))
+    col[0] = blinky(cycle)
+    int32 st = ta_send_cmd(SIGNAL, 2, col)
+    printf("Lampe = %d\n", st)
 
     if ((cycle % 10) == 0) {
         log("monitor alive, cycle " + str$(cycle) + "\n")

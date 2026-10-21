@@ -150,14 +150,11 @@ func sum(int32[] arr, int32 n) {
 
 | Function | Meaning |
 |---|---|
-| `ta_send_cmd(number, topic, a, b, c)` | Command to a Techage node → status (0 = ok) |
-| `ta_send_cmd_s(number, topic, "text")` | String command (e.g. displays) → status |
+| `ta_send_cmd(number, topic, payload)` | Command → status (0 = ok); payload = `int32[]` or string (topic ≥ 64) |
 | `ta_signal(number, 0\|1)` | On/off signal (shortcut) |
-| `ta_req_data(number, topic, a, b, c)` | Synchronous request → numeric result |
-| `ta_req_data_s(number, topic, a, b, c)` | Synchronous request → string result |
-| `ta_req_data_str(number, topic, "text")` | Synchronous request with string payload → numeric result |
-| `ta_recv()` | 1 if a command arrived (else 0) |
-| `ta_port()`, `ta_topic()`, `ta_payload(i)` | read the received command |
+| `ta_req_data(number, topic, payload)` | Request → number; payload = `int32[]` or string (topic ≥ 192) |
+| `ta_req_data_s(number, topic, payload)` | Request → string |
+| `ta_recv(cmd[])` | read a command into `cmd` = `[number, topic, p0, p1, …]`; 1 if one arrived |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | read the received signal |
 | `key()` | next key as a number, or -1 |
 | `log("text")` | debug/log message to the external debugger (VS Code Debug Console); no-op in-game |
@@ -189,25 +186,31 @@ mapping is needed (NanoC has 32-bit variables).
 ```
 int32 chest = 5                             // a techage node number
 
-int32 state = ta_req_data(chest, 131, 0, 0, 0)   // synchronous request -> number
-str8  name$ = ta_req_data_s(chest, 128, 0, 0, 0) // synchronous request -> string
-int32 cnt   = ta_req_data_str(chest, 192, "techage:lighter") // string payload -> number
+int32 p[0]                                  // payload array (1 element)
+p[0] = 1
 
-int32 sts = ta_send_cmd(chest, 1, 1, 0, 0)       // command (topic < 128) -> status
-ta_send_cmd_s(chest, 67, "text")                 // string command (displays)
+int32 state = ta_req_data(chest, 131, p)    // request -> number
+str8  name$ = ta_req_data_s(chest, 128, p)  // request -> string
+int32 cnt   = ta_req_data(chest, 192, "techage:lighter") // string payload -> number
+
+int32 sts = ta_send_cmd(chest, 1, p)        // command -> status (p[0] = 1)
+ta_send_cmd(chest, 67, "text")              // string payload (topic >= 64)
 ```
 
+The payload is an `int32[]` array for numeric topics, or a string for the
+Beduino string-topic ranges (≥ 192 for requests, ≥ 64 for commands).
 `ta_req_data`/`ta_req_data_s` return the answer directly (synchronous, like
 techage's `basic_terminal`), so no `sleep`+`ta_recv` polling is needed for
-requests. `ta_send_cmd`/`ta_send_cmd_s` return the status (`0` = ok, like
-Beduino/NanoBasic).
+requests. `ta_send_cmd` returns the status (`0` = ok).
 
-For asynchronous replies/commands you may still read them via:
+Incoming commands are read into an array:
 ```
-ta_recv()                          // 1 if a reply/command arrived
-int32 num = ta_port()              // the node number involved
-int32 topic = ta_topic()
-int32 val = ta_payload(0)
+int32 cmd[4]
+if (ta_recv(cmd) == 1) {
+    int32 num = cmd[0]      // sending node number
+    int32 topic = cmd[1]
+    int32 p0 = cmd[2]       // payload...
+}
 ```
 
 Incoming commands from other nodes are delivered to the program. Topic `1`

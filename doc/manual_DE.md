@@ -152,14 +152,11 @@ func sum(int32[] arr, int32 n) {
 
 | Funktion | Bedeutung |
 |---|---|
-| `ta_send_cmd(nummer, topic, a, b, c)` | Kommando an eine Techage-Knotennummer → Status (0 = ok) |
-| `ta_send_cmd_s(nummer, topic, "text")` | String-Kommando (z. B. Displays) → Status |
+| `ta_send_cmd(nummer, topic, payload)` | Kommando → Status (0 = ok); payload = `int32[]` oder String (topic ≥ 64) |
 | `ta_signal(nummer, 0\|1)` | Signal (on/off) senden (Kurzform) |
-| `ta_req_data(nummer, topic, a, b, c)` | Synchrone Anfrage → Zahl |
-| `ta_req_data_s(nummer, topic, a, b, c)` | Synchrone Anfrage → String |
-| `ta_req_data_str(nummer, topic, "text")` | Synchrone Anfrage mit String-Payload → Zahl |
-| `ta_recv()` | 1, wenn ein Kommando ankam (sonst 0) |
-| `ta_port()`, `ta_topic()`, `ta_payload(i)` | das empfangene Kommando lesen |
+| `ta_req_data(nummer, topic, payload)` | Anfrage → Zahl; payload = `int32[]` oder String (topic ≥ 192) |
+| `ta_req_data_s(nummer, topic, payload)` | Anfrage → String |
+| `ta_recv(cmd[])` | Kommando in `cmd` = `[nummer, topic, p0, p1, …]` lesen; 1 wenn eines ankam |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | das empfangene Signal lesen |
 | `key()` | nächste Taste als Zahl, oder -1 |
 | `log("text")` | Log-/Debug-Meldung an den externen Debugger (VS-Code Debug Console); in-game ohne Wirkung |
@@ -191,25 +188,31 @@ Mapping nötig (NanoC hat 32-Bit-Variablen).
 ```
 int32 kiste = 5                              // eine Techage-Knotennummer
 
-int32 zustand = ta_req_data(kiste, 131, 0, 0, 0) // synchrone Anfrage -> Zahl
-str8  name$   = ta_req_data_s(kiste, 128, 0, 0, 0)// synchrone Anfrage -> String
-int32 anzahl  = ta_req_data_str(kiste, 192, "techage:lighter") // String-Payload -> Zahl
+int32 p[0]                                   // Payload-Array (1 Element)
+p[0] = 1
 
-int32 sts = ta_send_cmd(kiste, 1, 1, 0, 0)       // Kommando (topic < 128) -> Status
-ta_send_cmd_s(kiste, 67, "text")                 // String-Kommando (Displays)
+int32 zustand = ta_req_data(kiste, 131, p)   // Anfrage -> Zahl
+str8  name$   = ta_req_data_s(kiste, 128, p) // Anfrage -> String
+int32 anzahl  = ta_req_data(kiste, 192, "techage:lighter") // String-Payload -> Zahl
+
+int32 sts = ta_send_cmd(kiste, 1, p)         // Kommando -> Status (p[0] = 1)
+ta_send_cmd(kiste, 67, "text")               // String-Payload (topic >= 64)
 ```
 
+Der Payload ist ein `int32[]`-Array für numerische Topics oder ein String für
+die Beduino-String-Bereiche (≥ 192 bei Anfragen, ≥ 64 bei Kommandos).
 `ta_req_data`/`ta_req_data_s` liefern die Antwort **direkt** (synchron, wie bei
 Techage `basic_terminal`) – kein `sleep`+`ta_recv`-Polling für Anfragen nötig.
-`ta_send_cmd`/`ta_send_cmd_s` liefern den **Status** (`0` = ok, wie
-Beduino/NanoBasic).
+`ta_send_cmd` liefert den **Status** (`0` = ok).
 
-Für asynchrone Antworten/Kommandos können diese weiterhin gelesen werden:
+Eingehende Kommandos werden in ein Array gelesen:
 ```
-ta_recv()                          // 1, wenn Antwort/Kommando ankam
-int32 num = ta_port()              // die betroffene Knotennummer
-int32 topic = ta_topic()
-int32 val = ta_payload(0)
+int32 cmd[4]
+if (ta_recv(cmd) == 1) {
+    int32 num = cmd[0]      // sendende Knotennummer
+    int32 topic = cmd[1]
+    int32 p0 = cmd[2]       // Payload...
+}
 ```
 
 Eingehende Kommandos anderer Nodes werden an das Programm zugestellt. Topic
