@@ -38,6 +38,32 @@ if nanoclib.protocol() ~= 1 then
 	do return end
 end
 
+-- An outdated nanoclib (e.g. after updating this mod only) would otherwise
+-- fail with "attempt to call field 'xxx' (a nil value)" in a timer callback
+-- and take the whole server down. Disable the mod instead.
+local required_lib = {
+	"clear_breakpoint", "clear_breakpoints", "create", "debug_attach",
+	"debug_detach", "define_xfunc", "destroy", "get_backtrace", "get_line",
+	"get_pc", "get_reason", "get_variables", "is_loaded", "load",
+	"net_accept", "net_close", "net_listen", "net_recv", "net_send",
+	"output", "output_clear", "pack_vm", "peek_num", "pop_arr", "pop_num",
+	"pop_str", "push_key", "push_num", "push_str", "reset", "run",
+	"set_breakpoint", "sleep_remaining", "step", "step_mode",
+	"techage_read_signal", "techage_write_cmnd", "unpack_vm",
+}
+local missing_lib = {}
+for _, name in ipairs(required_lib) do
+	if type(nanoclib[name]) ~= "function" then
+		missing_lib[#missing_lib + 1] = name
+	end
+end
+if #missing_lib > 0 then
+	minetest.log("error", "[nanoc] nanoclib " .. tostring(nanoclib.version())
+		.. " is too old, missing: " .. table.concat(missing_lib, ", ")
+		.. ". Rebuild it: cd nanoc_lib && sudo luarocks make --lua-version 5.1")
+	do return end
+end
+
 nanoc.lib = nanoclib
 nanoc.IE = IE
 nanoc.protocol = nanoclib.protocol
