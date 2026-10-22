@@ -220,6 +220,9 @@ Eingehende Kommandos anderer Nodes werden an das Programm zugestellt. Topic
 
 Beispiel: `examples/techage_monitor.nanoc`.
 
+Topic-Referenz (BEP 005):
+<https://github.com/joe7575/beduino/blob/main/BEPs/bep-005_ta_cmnd.md>
+
 ## Externes Terminal / Debugger (Python-Client)
 
 Ein Controller ist vom PC aus per TCP erreichbar. Der Server-Admin muss die
