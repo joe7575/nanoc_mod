@@ -37,10 +37,56 @@ Each setting must be on its **own line** (`key = value`); do not put several
 settings on one line separated by commas. `secure.trusted_mods` itself takes a
 comma-separated list of mod names.
 
-For access from another PC in the LAN use `nanoc_bridge_bind = 0.0.0.0` (test
-phase only: plaintext, token-only; never forward the port on the router) — see
-`doc/manual.md`. All settings and defaults are listed in
+For access from another PC in the LAN use `nanoc_bridge_bind = 0.0.0.0` only
+together with TLS (see below) or inside a trusted LAN. Never forward the port
+on the router — see `doc/manual.md`. All settings and defaults are listed in
 [`settingtypes.txt`](settingtypes.txt).
+
+## TLS for the bridge
+
+TLS is built into the bridge, but the C module must be compiled with OpenSSL:
+
+```bash
+# Debian/Ubuntu
+sudo apt install libssl-dev
+# Fedora/RHEL
+sudo dnf install openssl-devel
+
+cd ~/Projekte/nanoc_lib
+sudo NANOC_TLS=1 luarocks make --lua-version 5.1
+```
+
+Without `NANOC_TLS=1` the bridge builds as before (plain TCP) and logs an error
+if `nanoc_bridge_tls = true`. Generate a certificate whose SAN matches the
+host/IP used by the clients (a self-signed one is fine for a private server):
+
+```bash
+openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out cert.pem \
+  -days 365 -subj "/CN=nanoc" \
+  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+chmod 600 key.pem
+```
+
+`minetest.conf`:
+
+```ini
+nanoc_bridge_tls = true
+nanoc_bridge_tls_cert = /etc/luanti/nanoc-cert.pem
+nanoc_bridge_tls_key = /etc/luanti/nanoc-key.pem
+# optional: require a client certificate
+# nanoc_bridge_tls_ca = /etc/luanti/nanoc-ca.pem
+# nanoc_bridge_tls_verify_client = true
+```
+
+Clients use `--tls` plus one of:
+
+- `--cafile cert.pem` — normal verification (hostname/IP must match the SAN)
+- `--tls-fingerprint <sha256>` — pin the certificate, no CA needed
+- `--tls-insecure` — no verification (testing only)
+
+Example: `nanoc-tui --host 192.168.1.10 --tls --cafile cert.pem --token ...`.
+For MCP set `NANOC_TLS=1` and either `NANOC_CAFILE`,
+`NANOC_TLS_FINGERPRINT` or `NANOC_TLS_INSECURE=1`.
 
 ## Bridge troubleshooting
 
@@ -98,13 +144,12 @@ sudo ufw allow from 192.168.178.0/24 to any port 41100 proto tcp
 sudo firewall-cmd --add-port=41100/tcp --permanent && sudo firewall-cmd --reload
 ```
 
-Security: the bridge is a separate plaintext **TCP** service; Luanti's game
-protocol (UDP) is unrelated and does not protect it. It is guarded only by the
-token. Keep the default bind on `127.0.0.1`. For access from another machine
-use an SSH tunnel (`ssh -L 41100:127.0.0.1:41100 user@server`) or a VPN. Bind
-`0.0.0.0` only in a trusted LAN, never forward the port on the router. TLS is
-not built in; if you need encryption, put the bridge behind stunnel/nginx or
-use the SSH tunnel.
+Security: the bridge is a separate **TCP** service; Luanti's game protocol
+(UDP) is unrelated and does not protect it. Without TLS it is plaintext and
+guarded only by the token. Keep the default bind on `127.0.0.1`; for access
+from another machine use TLS or an SSH tunnel
+(`ssh -L 41100:127.0.0.1:41100 user@server`)/VPN. Bind `0.0.0.0` only when TLS
+is enabled and never forward the port on the router.
 
 ## Bridge clients
 

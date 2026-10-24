@@ -235,6 +235,7 @@ Bridge einschalten (siehe `README.md` der Mod).
 2. **Am PC**:
    ```bash
    python -m nanoc_client.cli --host <server> --port 41100 --token <TOKEN>
+   # mit TLS: --tls --cafile cert.pem (oder --tls-fingerprint <sha256>)
    ```
    Kommandos: `state`, `attach`, `bp <line>`, `step`, `cont`, `vars`, `key`,
    `help`.

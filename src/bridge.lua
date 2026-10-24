@@ -8,7 +8,7 @@
 	AGPL v3
 	See LICENSE.txt for more information
 
-	TCP bridge for the external Python client (protocol v1).
+	TCP bridge for the external Python client (protocol v2).
 	See nanoc_lib/doc/protocol.md.
 
 	The sockets live in the nanoclib C module (non-blocking, polled from a
@@ -17,6 +17,8 @@
 
 	Security: a client must present the controller's "external token"
 	(shown in the controller formspec). Binds to 127.0.0.1 by default.
+	Optional TLS (nanoc_bridge_tls) requires a nanoclib built with
+	NANOC_TLS=1.
 
 ]]--
 
@@ -39,6 +41,25 @@ local MAX_CLIENTS = tonumber(minetest.settings:get("nanoc_bridge_max_clients")) 
 local HANDSHAKE_TIMEOUT = tonumber(minetest.settings:get("nanoc_bridge_handshake_timeout")) or 5
 local IDLE_TIMEOUT = tonumber(minetest.settings:get("nanoc_bridge_idle_timeout")) or 0
 local CMD_RATE = tonumber(minetest.settings:get("nanoc_bridge_cmd_rate")) or 100
+-- Transport encryption (needs a nanoclib built with NANOC_TLS=1)
+local TLS = minetest.settings:get_bool("nanoc_bridge_tls", false)
+local TLS_CERT = minetest.settings:get("nanoc_bridge_tls_cert") or ""
+local TLS_KEY = minetest.settings:get("nanoc_bridge_tls_key") or ""
+local TLS_CA = minetest.settings:get("nanoc_bridge_tls_ca") or ""
+local TLS_VERIFY = minetest.settings:get_bool("nanoc_bridge_tls_verify_client", false)
+
+if TLS then
+	if not lib.net_tls_available or not lib.net_tls_available() then
+		minetest.log("error", "[nanoc] bridge: TLS requested but nanoclib has " ..
+			"no TLS support (rebuild with NANOC_TLS=1)")
+		return
+	end
+	if TLS_CERT == "" or TLS_KEY == "" then
+		minetest.log("error", "[nanoc] bridge: TLS needs nanoc_bridge_tls_cert " ..
+			"and nanoc_bridge_tls_key")
+		return
+	end
+end
 
 local MAGIC0, MAGIC1 = 0x4E, 0x43
 local VERSION = 2
@@ -175,7 +196,7 @@ local function parse_frames(c)
 			return nil   -- protocol error -> close
 		end
 		local session = r_u32le(c.buf, pos + 4)
-		local len = r_u16le(c.buf, pos + 8)
+		local len = r_u32le(c.buf, pos + 8)
 		if #c.buf - pos + 1 < 12 + len then
 			break
 		end
@@ -424,8 +445,19 @@ minetest.register_globalstep(function(dtime)
 		if count >= MAX_CLIENTS then
 			lib.net_close(id)          -- refuse: too many clients
 		else
-			clients[id] = { id = id, buf = "", session = 0, pos = nil, authed = false,
+			local c = { id = id, buf = "", session = 0, pos = nil, authed = false,
 				connected_at = t, last_activity = t, cmd_window = t, cmd_count = 0 }
+			if TLS then
+				local ok, err = lib.net_tls_accept(id, TLS_CERT, TLS_KEY,
+					TLS_CA ~= "" and TLS_CA or nil, TLS_VERIFY)
+				if not ok then
+					minetest.log("warning", "[nanoc] bridge: TLS handshake setup failed: "
+						.. tostring(err))
+					lib.net_close(id)
+					c = nil
+				end
+			end
+			if c then clients[id] = c end
 		end
 	end
 
@@ -483,6 +515,11 @@ minetest.register_globalstep(function(dtime)
 						end
 					end
 				end
+			end
+		end
+		if alive and lib.net_flush then
+			if lib.net_flush(c.id) == false then
+				alive = false       -- pending TLS/TCP write failed
 			end
 		end
 		if not alive then
@@ -550,4 +587,5 @@ minetest.register_chatcommand("nanoc_bridge", {
 	end,
 })
 
-minetest.log("action", "[nanoc] bridge listening on " .. BIND .. ":" .. PORT)
+minetest.log("action", "[nanoc] bridge listening on " .. BIND .. ":" .. PORT ..
+	(TLS and " (TLS)" or ""))

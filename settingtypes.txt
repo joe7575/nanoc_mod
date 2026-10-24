@@ -2,7 +2,8 @@
 
 # Bridge bind address. Default 127.0.0.1 = local only. For the test phase you
 # can reach it from another PC in your LAN by setting 0.0.0.0 (plaintext, token
-# only - do NOT forward this port on the router; add TLS before exposing it).
+# only - do NOT forward this port on the router; enable TLS or use an SSH
+# tunnel/VPN instead).
 
 nanoc_bridge_enable (NanoC: external TCP bridge) bool false
 nanoc_bridge_bind (NanoC: bridge bind address) string 127.0.0.1
@@ -12,6 +13,15 @@ nanoc_bridge_max_clients (NanoC: max concurrent bridge clients) int 8
 nanoc_bridge_handshake_timeout (NanoC: seconds to authenticate a client) int 5
 nanoc_bridge_cmd_rate (NanoC: max debug commands per second per client) int 100
 nanoc_bridge_idle_timeout (NanoC: close idle clients after N seconds, 0=off) int 0
+
+# TLS for the bridge. Requires a nanoclib built with NANOC_TLS=1 and OpenSSL.
+# Give PEM files (absolute paths). Clients use --tls and either --cafile or
+# --tls-insecure/--tls-fingerprint. Client certificates are optional.
+nanoc_bridge_tls (NanoC: encrypt the bridge with TLS) bool false
+nanoc_bridge_tls_cert (NanoC: TLS certificate file, PEM) string
+nanoc_bridge_tls_key (NanoC: TLS private key file, PEM) string
+nanoc_bridge_tls_ca (NanoC: CA file to verify client certificates) string
+nanoc_bridge_tls_verify_client (NanoC: require a valid client certificate) bool false
 
 # Adaptive CPU budget: the controller measures how long a tick really takes and
 # adjusts the VM instruction budget to stay near the time target. No hard limit,

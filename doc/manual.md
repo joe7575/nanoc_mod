@@ -233,6 +233,7 @@ bridge (see the mod's `README.md`).
 2. **On the PC**:
    ```bash
    python -m nanoc_client.cli --host <server> --port 41100 --token <TOKEN>
+   # with TLS: add --tls --cafile cert.pem (or --tls-fingerprint <sha256>)
    ```
    Commands: `state`, `attach`, `bp <line>`, `step`, `cont`, `vars`, `key`,
    `help`.
