@@ -81,7 +81,12 @@ nanoc.cap_topics = {
 	[153] = { kind = "request", name = "water remover depth" },
 	[154] = { kind = "request", name = "digitizer item count", response = "[num]" },
 	[155] = { kind = "request", name = "digitizer item name", response = "<item name>" },
+	[156] = { kind = "request", name = "recipe block max recipes", response = "[num]" },
+	[157] = { kind = "request", name = "recipe block selected index", response = "[num]" },
+	[158] = { kind = "request", name = "recipe block output count", note = "[idx]", response = "[num]" },
 	[192] = { kind = "request", name = "chest item count", note = "<item name>" },
+	[193] = { kind = "request", name = "recipe block output name", note = "\"idx\"", response = "<item name>" },
+	[194] = { kind = "request", name = "recipe block input name", note = "\"idx,slot\"", response = "<item name>" },
 }
 
 -- Explicit registrations win over pattern rules. External mods add here.
@@ -98,6 +103,7 @@ nanoc.cap_rules = {
 	{ "chest",          { 131, 192 } },
 	{ "hl_chest",       { 131, 192 } },
 	{ "pusher",         { 1, 20, 65, 150 } },
+	{ "recipeblock",    { 156, 157, 158, 193, 194 } },
 	{ "autocrafter",    { 1, 10, 11, 129 } },
 	{ "electronic_fab", { 1, 128, 129 } },
 	{ "display",        { 17, 67, 68 } },
