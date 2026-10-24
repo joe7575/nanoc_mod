@@ -1,0 +1,397 @@
+// NanoC furnace control (separate plant, same controller/terminal)
+//
+// Plant (see nanoc_scan):
+//   input chest 40 -> pusher 37 -> furnace 34 (heater below)
+//   furnace 34 -> pusher 38 -> chest 39
+//   chest 39 -> pusher 53 (return intermediate products to chest 40)
+//   recipe adapter 43 is docked on top of the furnace; status tower 33.
+//
+// The adapter provides the furnace recipes:
+//   156 count, 158 output count, 193 output name, 194 input name,
+//   195 find by output name, 161 time, 162 input count, 163 input slots.
+// The furnace selects the recipe from the supplied ingredients (no set
+// command). Select a product by number (menu) or by typing its item name.
+
+const ADAPTER = 43
+const FURNACE = 34
+const IN = 40
+const P_IN = 37
+const OUT = 39
+const P_OUT = 38
+const P_RET = 53
+const TOWER = 33
+const TIMEOUT = 60000
+
+int32 p0[0]
+int32 p1[1]
+int32 p2[1]
+int32 g_buf[31]
+int32 g_rc = 0
+int32 g_res = 0
+
+str8 g_key = ""
+str8 g_name = ""
+str8 g_out = ""
+str8 g_text = ""
+str8 g_nm = ""
+
+// ---------------------------------------------------------------- helpers
+
+func tower(int32 color) {
+    p0[0] = color
+    g_rc = ta_send_cmd(TOWER, 2, p0)
+}
+
+func str8 slotkey(int32 idx, int32 slot) {
+    g_key = str(idx) + ","
+    g_key = g_key + str(slot)
+    return g_key
+}
+
+func stock(str8 name) {
+    g_res = ta_req_data(IN, 192, name)
+}
+
+func find_recipe(str8 name) {
+    g_res = ta_req_data(ADAPTER, 195, name)
+}
+
+func do_push(int32 pusher, str8 name, int32 count) {
+    int32 t = 0
+    int32 n = 0
+    g_res = 1
+    g_rc = ta_send_cmd(pusher, 65, name)
+    p0[0] = count
+    g_rc = ta_send_cmd(pusher, 20, p0)
+    p0[0] = 1
+    g_rc = ta_send_cmd(pusher, 1, p0)
+    t = millis()
+    while (millis() - t < TIMEOUT) {
+        n = ta_req_data(pusher, 150, p0)
+        if (n >= count) {
+            g_res = 0
+            break
+        }
+        sleep(100)
+    }
+    p0[0] = 0
+    g_rc = ta_send_cmd(pusher, 1, p0)
+}
+
+func poll_furnace() {
+    int32 t = millis()
+    int32 st = 0
+    g_res = -1
+    while (millis() - t < TIMEOUT) {
+        st = ta_req_data(FURNACE, 129, p0)
+        if (st != 1) {
+            g_res = st
+            return
+        }
+        sleep(100)
+    }
+}
+
+func stop_all() {
+    p0[0] = 0
+    g_rc = ta_send_cmd(P_IN, 1, p0)
+    g_rc = ta_send_cmd(P_OUT, 1, p0)
+    g_rc = ta_send_cmd(P_RET, 1, p0)
+    g_rc = ta_send_cmd(FURNACE, 1, p0)
+}
+
+// Produce one batch of a sub-recipe and re-read the stock of the parent
+// ingredient. do_craft() clobbers the globals. Returns the stock in g_res,
+// or -1 on error.
+func do_sub(int32 idx, int32 sub, int32 slot, int32 depth) {
+    do_craft(sub, 0, depth)
+    if (g_res != 0) {
+        g_res = -1
+        return
+    }
+    g_name = ta_req_data_s(ADAPTER, 194, slotkey(idx, slot))
+    stock(g_name)
+}
+
+// Make sure every input of recipe idx is in chest IN. Missing products that
+// the fab can make itself are produced first and returned via pusher 51.
+func ensure_recipe(int32 idx, int32 depth) {
+    int32 s = 0
+    int32 need = 0
+    int32 have = 0
+    int32 sub = 0
+    int32 n = 0
+    g_res = 1
+    p1[0] = idx
+    n = ta_req_data(ADAPTER, 163, p1)
+    for s = 1 to n {
+        p1[0] = idx
+        p1[1] = s
+        g_name = ta_req_data_s(ADAPTER, 194, slotkey(idx, s))
+        need = ta_req_data(ADAPTER, 162, p1)
+        if (need > 0 and g_name != "") {
+            stock(g_name)
+            have = g_res
+            if (have < need) {
+                find_recipe(g_name)
+                sub = g_res
+                if (sub > 0 and sub != idx and depth < 2) {
+                    printf("  Zwischenprodukt: %s x%d\n", g_name, need)
+                    if (have < need) {
+                        do_sub(idx, sub, s, depth + 1)
+                        have = g_res
+                        if (have < 0) {
+                            return
+                        }
+                    }
+                    if (have < need) {
+                        do_sub(idx, sub, s, depth + 1)
+                        have = g_res
+                        if (have < 0) {
+                            return
+                        }
+                    }
+                    if (have < need) {
+                        do_sub(idx, sub, s, depth + 1)
+                        have = g_res
+                        if (have < 0) {
+                            return
+                        }
+                    }
+                    if (have < need) {
+                        do_sub(idx, sub, s, depth + 1)
+                        have = g_res
+                        if (have < 0) {
+                            return
+                        }
+                    }
+                }
+            }
+            if (have < need) {
+                printf("Fehler: %s fehlt (%d da, %d noetig)\n", g_name, have, need)
+                g_res = 1
+                return
+            }
+        }
+    }
+    g_res = 0
+}
+
+func push_recipe(int32 idx) {
+    int32 s = 0
+    int32 need = 0
+    int32 n = 0
+    g_res = 1
+    p1[0] = idx
+    n = ta_req_data(ADAPTER, 163, p1)
+    for s = 1 to n {
+        p1[0] = idx
+        p1[1] = s
+        g_name = ta_req_data_s(ADAPTER, 194, slotkey(idx, s))
+        need = ta_req_data(ADAPTER, 162, p1)
+        if (need > 0 and g_name != "") {
+            do_push(P_IN, g_name, need)
+            if (g_res != 0) {
+                return
+            }
+        }
+    }
+    g_res = 0
+}
+
+// Produce recipe idx. eject=1 drops the result, eject=0 returns it to the
+// input chest for use as an intermediate product.
+func do_craft(int32 idx, int32 eject, int32 depth) {
+    int32 cnt = 0
+    int32 st = 0
+    int32 t = 0
+    int32 have = 0
+    g_res = 1
+    p1[0] = idx
+    cnt = ta_req_data(ADAPTER, 158, p1)
+    g_out = ta_req_data_s(ADAPTER, 193, str(idx))
+    if (cnt <= 0 or g_out == "") {
+        printf("Fehler: Rezept %d ist leer\n", idx)
+        return
+    }
+    printf("Rezept %d: %s x%d\n", idx, g_out, cnt)
+    ensure_recipe(idx, depth)
+    if (g_res != 0) {
+        return
+    }
+    // ensure_recipe may have run sub-crafts: refresh the data
+    p1[0] = idx
+    cnt = ta_req_data(ADAPTER, 158, p1)
+    g_out = ta_req_data_s(ADAPTER, 193, str(idx))
+    // stop, push the inputs, start (the furnace picks the recipe)
+    p0[0] = 0
+    g_rc = ta_send_cmd(FURNACE, 1, p0)
+    push_recipe(idx)
+    if (g_res != 0) {
+        printf("Fehler: Zutaten konnten nicht zugefuehrt werden\n")
+        return
+    }
+    // inputs are in the furnace: let the adapter select the output
+    g_rc = ta_send_cmd(ADAPTER, 64, str(idx))
+    p0[0] = 1
+    g_rc = ta_send_cmd(FURNACE, 1, p0)
+    poll_furnace()
+    st = g_res
+    if (st == -1) {
+        printf("Fehler: Ofen Timeout\n")
+        return
+    }
+    if (st == 4) {
+        printf("Fehler: Ofen ohne Strom\n")
+        return
+    }
+    if (st == 5) {
+        printf("Fehler: Ofen Stoerung\n")
+        return
+    }
+    if (st == 2) {
+        printf("Fehler: Ofen blockiert\n")
+        return
+    }
+    // move output to chest OUT
+    do_push(P_OUT, g_out, cnt)
+    if (g_res != 0) {
+        printf("Fehler: Ausgabe nicht bewegbar\n")
+        return
+    }
+    have = 0
+    t = millis()
+    while (millis() - t < TIMEOUT) {
+        have = ta_req_data(OUT, 192, g_out)
+        if (have >= cnt) {
+            break
+        }
+        sleep(100)
+    }
+    if (have < cnt) {
+        printf("Fehler: Ausgabe nicht in Kiste 39\n")
+        return
+    }
+    if (eject == 0) {
+        do_push(P_RET, g_out, cnt)
+        if (g_res != 0) {
+            printf("Fehler: Ruecktransport fehlgeschlagen\n")
+            return
+        }
+    }
+    g_res = 0
+}
+
+// ---------------------------------------------------------------- terminal
+
+func read_text() {
+    int32 k = 0
+    int32 n = 0
+    while (1) {
+        k = key()
+        if (k < 0) {
+            sleep(50)
+        } else if (k == 10 or k == 13) {
+            u8(g_buf, n, 0)
+            g_text = arr2str(g_buf, 0)
+            printf("\n")
+            return
+        } else if (k == 8) {
+            if (n > 0) {
+                n = n - 1
+                u8(g_buf, n, 0)
+                printf("\b \b")
+            }
+        } else if (k >= 32 and k < 127) {
+            if (n < 120) {
+                u8(g_buf, n, k)
+                n = n + 1
+                printf("%c", k)
+            }
+        }
+    }
+}
+
+func show_menu() {
+    int32 i = 0
+    int32 n = 0
+    int32 cnt = 0
+    p0[0] = 0
+    cnt = ta_req_data(ADAPTER, 156, p0)
+    printf("\27\1")
+    printf("NanoC Schmelzofen\n")
+    printf("-----------------\n")
+    if (cnt > 10) {
+        n = 10
+    } else {
+        n = cnt
+    }
+    for i = 1 to n {
+        g_nm = ta_req_data_s(ADAPTER, 193, str(i))
+        printf("%d: %s\n", i, g_nm)
+    }
+    if (cnt > 10) {
+        printf("... (%d Rezepte; Namen eingeben)\n", cnt)
+    }
+    printf("\nNummer oder Produktname: ")
+}
+
+// ---------------------------------------------------------------- main
+
+func main_loop() {
+    int32 sel = 0
+    int32 cnt = 0
+    int32 first = 0
+    int32 count = 0
+    while (1) {
+        show_menu()
+        read_text()
+        first = u8(g_buf, 0)
+        tower(0)
+        p0[0] = 0
+        count = ta_req_data(ADAPTER, 156, p0)
+        if (first >= 48 and first <= 57) {
+            sel = val(g_text)
+        } else {
+            sel = ta_req_data(ADAPTER, 195, g_text)
+        }
+        if (sel < 1 or sel > count) {
+            tower(3)
+            printf("Fehler: Produkt nicht gefunden\n")
+            sleep(2000)
+        } else {
+            p1[0] = sel
+            cnt = ta_req_data(ADAPTER, 158, p1)
+            g_out = ta_req_data_s(ADAPTER, 193, str(sel))
+            p0[0] = 0
+            if (cnt <= 0 or g_out == "") {
+                tower(3)
+                printf("Fehler: Rezept %d ist leer\n", sel)
+                sleep(2000)
+            } else if (ta_req_data(OUT, 131, p0) != 0) {
+                tower(3)
+                printf("Fehler: Ausgangskiste 39 ist nicht leer\n")
+                sleep(2000)
+            } else {
+                tower(2)
+                printf("Starte: %s x%d\n", g_out, cnt)
+                do_craft(sel, 1, 0)
+                if (g_res != 0) {
+                    tower(3)
+                    stop_all()
+                    printf("Fehler - rot bis zur naechsten Eingabe\n")
+                    sleep(2000)
+                } else {
+                    tower(1)
+                    printf("Fertig - 4s gruen\n")
+                    sleep(4000)
+                    tower(0)
+                }
+            }
+        }
+        sleep(200)
+    }
+}
+
+tower(0)
+main_loop()
