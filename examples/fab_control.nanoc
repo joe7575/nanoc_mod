@@ -101,6 +101,19 @@ func stop_all() {
     g_rc = ta_send_cmd(FAB, 1, p0)
 }
 
+// Produce one batch of a sub-recipe and re-read the stock of the parent
+// ingredient. do_craft() clobbers the globals. Returns the stock in g_res,
+// or -1 on error.
+func do_sub(int32 idx, int32 sub, int32 slot, int32 depth) {
+    do_craft(sub, 0, depth)
+    if (g_res != 0) {
+        g_res = -1
+        return
+    }
+    g_name = ta_req_data_s(ADAPTER, 194, slotkey(idx, slot))
+    stock(g_name)
+}
+
 // Make sure every input of recipe idx is in chest IN. Missing products that
 // the fab can make itself are produced first and returned via pusher 51.
 func ensure_recipe(int32 idx, int32 depth) {
@@ -125,12 +138,34 @@ func ensure_recipe(int32 idx, int32 depth) {
                 sub = g_res
                 if (sub > 0 and sub != idx and depth < 2) {
                     printf("  Zwischenprodukt: %s x%d\n", g_name, need)
-                    do_craft(sub, 0, depth + 1)
-                    if (g_res != 0) {
-                        return
+                    if (have < need) {
+                        do_sub(idx, sub, s, depth + 1)
+                        have = g_res
+                        if (have < 0) {
+                            return
+                        }
                     }
-                    stock(g_name)
-                    have = g_res
+                    if (have < need) {
+                        do_sub(idx, sub, s, depth + 1)
+                        have = g_res
+                        if (have < 0) {
+                            return
+                        }
+                    }
+                    if (have < need) {
+                        do_sub(idx, sub, s, depth + 1)
+                        have = g_res
+                        if (have < 0) {
+                            return
+                        }
+                    }
+                    if (have < need) {
+                        do_sub(idx, sub, s, depth + 1)
+                        have = g_res
+                        if (have < 0) {
+                            return
+                        }
+                    }
                 }
             }
             if (have < need) {
