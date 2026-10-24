@@ -18,6 +18,7 @@ const IN = 40
 const P_IN = 37
 const OUT = 39
 const P_OUT = 38
+const P_EJECT = 54
 const P_RET = 53
 const TOWER = 33
 const TIMEOUT = 60000
@@ -96,6 +97,7 @@ func stop_all() {
     p0[0] = 0
     g_rc = ta_send_cmd(P_IN, 1, p0)
     g_rc = ta_send_cmd(P_OUT, 1, p0)
+    g_rc = ta_send_cmd(P_EJECT, 1, p0)
     g_rc = ta_send_cmd(P_RET, 1, p0)
     g_rc = ta_send_cmd(FURNACE, 1, p0)
 }
@@ -272,12 +274,14 @@ func do_craft(int32 idx, int32 eject, int32 depth) {
         printf("Fehler: Ausgabe nicht in Kiste 39\n")
         return
     }
-    if (eject == 0) {
+    if (eject == 1) {
+        do_push(P_EJECT, g_out, cnt)
+    } else {
         do_push(P_RET, g_out, cnt)
-        if (g_res != 0) {
-            printf("Fehler: Ruecktransport fehlgeschlagen\n")
-            return
-        }
+    }
+    if (g_res != 0) {
+        printf("Fehler: Ausgabe-Weg fehlgeschlagen\n")
+        return
     }
     g_res = 0
 }
