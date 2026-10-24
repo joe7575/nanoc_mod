@@ -53,11 +53,12 @@ sudo apt install libssl-dev
 sudo dnf install openssl-devel
 
 cd ~/Projekte/nanoc_lib
-sudo NANOC_TLS=1 luarocks make --lua-version 5.1
+sudo luarocks make tls/nanoc-0.1.0-2.rockspec --lua-version 5.1
 ```
 
-Without `NANOC_TLS=1` the bridge builds as before (plain TCP) and logs an error
-if `nanoc_bridge_tls = true`. Generate a certificate whose SAN matches the
+Without TLS the default build is `sudo luarocks make --lua-version 5.1`. If
+`nanoc_bridge_tls = true` is set but nanoclib was built without TLS, the bridge
+logs an error and stays disabled. Generate a certificate whose SAN matches the
 host/IP used by the clients (a self-signed one is fine for a private server):
 
 ```bash
