@@ -1,6 +1,6 @@
-// NanoC plant control for the TA4 test plant
+// NanoC factory control for the TA4 test factory
 //
-// Plant layout (see nanoc_scan):
+// Factory layout (see nanoc_scan):
 //   chest 24 -> pusher 21 \
 //   chest 25 -> pusher 22  > concentrator15 -> autocrafter 19
 //   chest 26 -> pusher 23 /
