@@ -98,9 +98,13 @@ sudo ufw allow from 192.168.178.0/24 to any port 41100 proto tcp
 sudo firewall-cmd --add-port=41100/tcp --permanent && sudo firewall-cmd --reload
 ```
 
-Security: the bridge is plaintext and protected only by the token. Use it only
-in a trusted LAN for now; do not forward the port on the router and add TLS
-before exposing it beyond your network.
+Security: the bridge is a separate plaintext **TCP** service; Luanti's game
+protocol (UDP) is unrelated and does not protect it. It is guarded only by the
+token. Keep the default bind on `127.0.0.1`. For access from another machine
+use an SSH tunnel (`ssh -L 41100:127.0.0.1:41100 user@server`) or a VPN. Bind
+`0.0.0.0` only in a trusted LAN, never forward the port on the router. TLS is
+not built in; if you need encryption, put the bridge behind stunnel/nginx or
+use the SSH tunnel.
 
 ## Bridge clients
 
