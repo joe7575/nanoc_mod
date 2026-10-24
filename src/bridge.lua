@@ -41,7 +41,7 @@ local IDLE_TIMEOUT = tonumber(minetest.settings:get("nanoc_bridge_idle_timeout")
 local CMD_RATE = tonumber(minetest.settings:get("nanoc_bridge_cmd_rate")) or 100
 
 local MAGIC0, MAGIC1 = 0x4E, 0x43
-local VERSION = 1
+local VERSION = 2
 local CH_DEBUG, CH_TERM, CH_CTRL, CH_LOG = 1, 2, 3, 4
 
 local CMD = { ATTACH = 1, DETACH = 2, STATE = 3, BP_SET = 4, BP_CLR = 5,
@@ -100,7 +100,7 @@ end
 
 local function frame(channel, payload, session)
 	return string.char(MAGIC0, MAGIC1, VERSION, channel)
-		.. u32le(session or 0) .. u16le(#payload) .. u16le(0) .. payload
+		.. u32le(session or 0) .. u32le(#payload) .. payload
 end
 
 -- ---- server ----

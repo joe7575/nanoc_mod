@@ -73,7 +73,8 @@ local function inventory_snapshot(pos)
 	end
 	local lists = {}
 	local any = false
-	for _, listname in ipairs(inv:get_lists()) do
+	-- InvRef:get_lists() returns a map listname -> list (not an array).
+	for listname in pairs(inv:get_lists()) do
 		local items = {}
 		for _, stack in ipairs(inv:get_list(listname)) do
 			if not stack:is_empty() then
