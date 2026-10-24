@@ -57,7 +57,13 @@ local function label(name)
 end
 
 local function collect_names()
-	local names = { "nanoc:controller" }
+	local names = {
+		"nanoc:controller",
+		-- Non-TA4 furnace parts (TA3 top + TA4 heater / firebox)
+		"techage:ta3_furnace_pas", "techage:ta3_furnace_act",
+		"techage:furnace_heater", "techage:furnace_heater_on",
+		"techage:furnace_firebox", "techage:furnace_firebox_on",
+	}
 	for name in pairs(techage.NodeDef) do
 		if is_ta4(name) then
 			names[#names + 1] = name
