@@ -115,13 +115,18 @@ func do_sub(int32 idx, int32 sub, int32 slot, int32 depth) {
     stock(g_name)
 }
 
-// Make sure every input of recipe idx is in chest IN. Missing products that
-// the fab can make itself are produced first and returned via pusher 51.
+// Make sure every input of recipe idx is in chest IN. Duplicate recipe slots
+// (e.g. bronze needs copper_ingot 3x) are summed up per item name. Missing
+// products that the furnace can make itself are produced first and returned
+// via pusher 53.
 func ensure_recipe(int32 idx, int32 depth) {
     int32 s = 0
+    int32 k = 0
     int32 need = 0
+    int32 total = 0
     int32 have = 0
     int32 sub = 0
+    int32 first = 0
     int32 n = 0
     g_res = 1
     p1[0] = idx
@@ -132,47 +137,51 @@ func ensure_recipe(int32 idx, int32 depth) {
         g_name = ta_req_data_s(ADAPTER, 194, slotkey(idx, s))
         need = ta_req_data(ADAPTER, 162, p1)
         if (need > 0 and g_name != "") {
-            stock(g_name)
-            have = g_res
-            if (have < need) {
-                find_recipe(g_name)
-                sub = g_res
-                if (sub > 0 and sub != idx and depth < 2) {
-                    printf("  Zwischenprodukt: %s x%d\n", g_name, need)
-                    if (have < need) {
-                        do_sub(idx, sub, s, depth + 1)
-                        have = g_res
-                        if (have < 0) {
-                            return
-                        }
-                    }
-                    if (have < need) {
-                        do_sub(idx, sub, s, depth + 1)
-                        have = g_res
-                        if (have < 0) {
-                            return
-                        }
-                    }
-                    if (have < need) {
-                        do_sub(idx, sub, s, depth + 1)
-                        have = g_res
-                        if (have < 0) {
-                            return
-                        }
-                    }
-                    if (have < need) {
-                        do_sub(idx, sub, s, depth + 1)
-                        have = g_res
-                        if (have < 0) {
-                            return
-                        }
+            first = 1
+            if (s > 1) {
+                for k = 1 to s - 1 {
+                    g_nm = ta_req_data_s(ADAPTER, 194, slotkey(idx, k))
+                    if (g_nm == g_name) {
+                        first = 0
                     }
                 }
             }
-            if (have < need) {
-                printf("Fehler: %s fehlt (%d da, %d noetig)\n", g_name, have, need)
-                g_res = 1
-                return
+            if (first == 1) {
+                total = 0
+                for k = s to n {
+                    p1[0] = idx
+                    p1[1] = k
+                    g_nm = ta_req_data_s(ADAPTER, 194, slotkey(idx, k))
+                    if (g_nm == g_name) {
+                        p1[0] = idx
+                        p1[1] = k
+                        total = total + ta_req_data(ADAPTER, 162, p1)
+                    }
+                }
+                stock(g_name)
+                have = g_res
+                if (have < total) {
+                    find_recipe(g_name)
+                    sub = g_res
+                    if (sub > 0 and sub != idx and depth < 3) {
+                        printf("  Zwischenprodukt: %s x%d\n", g_name, total - have)
+                        for k = 1 to 4 {
+                            if (have >= total) {
+                                break
+                            }
+                            do_sub(idx, sub, s, depth + 1)
+                            have = g_res
+                            if (have < 0) {
+                                return
+                            }
+                        }
+                    }
+                }
+                if (have < total) {
+                    printf("Fehler: %s fehlt (%d da, %d noetig)\n", g_name, have, total)
+                    g_res = 1
+                    return
+                }
             }
         }
     }
@@ -181,7 +190,10 @@ func ensure_recipe(int32 idx, int32 depth) {
 
 func push_recipe(int32 idx) {
     int32 s = 0
+    int32 k = 0
     int32 need = 0
+    int32 take = 0
+    int32 first = 0
     int32 n = 0
     g_res = 1
     p1[0] = idx
@@ -192,9 +204,33 @@ func push_recipe(int32 idx) {
         g_name = ta_req_data_s(ADAPTER, 194, slotkey(idx, s))
         need = ta_req_data(ADAPTER, 162, p1)
         if (need > 0 and g_name != "") {
-            do_push(P_IN, g_name, need)
-            if (g_res != 0) {
-                return
+            first = 1
+            if (s > 1) {
+                for k = 1 to s - 1 {
+                    g_nm = ta_req_data_s(ADAPTER, 194, slotkey(idx, k))
+                    if (g_nm == g_name) {
+                        first = 0
+                    }
+                }
+            }
+            if (first == 1) {
+                take = 0
+                for k = s to n {
+                    p1[0] = idx
+                    p1[1] = k
+                    g_nm = ta_req_data_s(ADAPTER, 194, slotkey(idx, k))
+                    if (g_nm == g_name) {
+                        p1[0] = idx
+                        p1[1] = k
+                        take = take + ta_req_data(ADAPTER, 162, p1)
+                    }
+                }
+                if (take > 0) {
+                    do_push(P_IN, g_name, take)
+                    if (g_res != 0) {
+                        return
+                    }
+                }
             }
         }
     }
