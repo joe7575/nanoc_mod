@@ -1,5 +1,7 @@
 # NanoC-Server-Setup für Server-Owner
 
+English version: [server_setup.md](server_setup.md)
+
 Diese Anleitung beschreibt, wie ein Server-Owner die NanoC-Bridge mit TLS
 einrichtet, damit externe Clients (nanoc-client, nanoc-tui, VS Code, MCP) sicher
 auf die Controller des Servers zugreifen können.
@@ -16,6 +18,7 @@ Port, Zertifikat und den Token des jeweiligen Controllers.
 | `<CERT_DIR>` | Geschütztes Verzeichnis für Zertifikat und Key |
 | `<SERVER_USER>` | Benutzer, unter dem der Luanti-Server läuft |
 | `<LAN_IP>` | LAN-/VPN-Adresse des Servers |
+| `<LAN_CIDR>` | LAN-Subnetz für Firewall-Regeln (z. B. Adressbereich des LANs) |
 | `<PUBLIC_HOSTNAME>` | Name, unter dem die Clients den Server erreichen (z. B. DDNS) |
 | `<PORT>` | TCP-Port der Bridge (Standard: `41100`) |
 | `<TOKEN>` | Token des Controllers aus dem Controller-Formular |

@@ -89,8 +89,9 @@ Example: `nanoc-tui --host 192.168.1.10 --tls --cafile cert.pem --token ...`.
 For MCP set `NANOC_TLS=1` and either `NANOC_CAFILE`,
 `NANOC_TLS_FINGERPRINT` or `NANOC_TLS_INSECURE=1`.
 
-For a complete step-by-step server-owner guide (German), see
-[`doc/server_setup_DE.md`](doc/server_setup_DE.md).
+For a complete step-by-step server-owner guide, see
+[`doc/server_setup.md`](doc/server_setup.md) (English) or
+[`doc/server_setup_DE.md`](doc/server_setup_DE.md) (German).
 
 ## Bridge troubleshooting
 
