@@ -333,7 +333,16 @@ local function handle_debug(c, payload)
 		for i = 1, #msg do resp[#resp + 1] = msg:byte(i) end
 	elseif cmd == CMD.SCAN then
 		local radius = w[2] or 8
-		local snap = nanoc.inspect and nanoc.inspect(c.pos, radius)
+		-- Center on the controller owner if that player is online; otherwise
+		-- use the controller position. This lets the player scan the plant
+		-- they are standing next to.
+		local center = c.pos
+		local owner = minetest.get_meta(c.pos):get_string("owner")
+		local player = owner ~= "" and minetest.get_player_by_name(owner)
+		if player then
+			center = vector.round(player:get_pos())
+		end
+		local snap = nanoc.inspect and nanoc.inspect(center, radius)
 		local json = snap and minetest.write_json(snap) or "{}"
 		resp = { cmd, STS.OK, #json }
 		for i = 1, #json do resp[#resp + 1] = json:byte(i) end

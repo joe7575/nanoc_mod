@@ -114,7 +114,7 @@ end
 
 -- Returns { center, radius, nodes = {...}, edges = {...} }
 function nanoc.inspect(center, radius)
-	radius = math.min(math.max(tonumber(radius) or 8, 1), 32)
+	radius = math.min(math.max(tonumber(radius) or 8, 1), 16)
 	local pos1 = { x = center.x - radius, y = center.y - radius, z = center.z - radius }
 	local pos2 = { x = center.x + radius, y = center.y + radius, z = center.z + radius }
 
@@ -128,6 +128,15 @@ function nanoc.inspect(center, radius)
 			local number = meta:get_string("node_number")
 			local pull_dir = meta:get_int("pull_dir")
 			local push_dir = meta:get_int("push_dir")
+			local hl
+			if node.name == "techage:ta5_hl_chest" or node.name == "techage:ta5_hl_tank" then
+				hl = {
+					role = clean(meta:get_string("status")),
+					conn_name = clean(meta:get_string("conn_name")),
+					remote_name = clean(meta:get_string("remote_name")),
+					conn_status = clean(meta:get_string("conn_status")),
+				}
+			end
 			nodes[#nodes + 1] = {
 				id = number ~= "" and number or P2S(pos),
 				pos = { x = pos.x, y = pos.y, z = pos.z },
@@ -143,6 +152,7 @@ function nanoc.inspect(center, radius)
 				pull_dir = pull_dir > 0 and pull_dir or nil,
 				push_dir = push_dir > 0 and push_dir or nil,
 				caps = nanoc.capabilities and nanoc.capabilities(node.name) or nil,
+				hyperloop = hl,
 			}
 		end
 	end
