@@ -195,6 +195,10 @@ openssl s_client -connect <PUBLIC_HOSTNAME>:<PORT> \
 Erwartet: TLS-Handshake erfolgreich und
 `Verify return code: 0 (ok)`.
 
+Hat der Controller noch kein Programm bzw. keine Ausgabe, mit `nanoc catalog`
+(Bridge/Token) oder `nanoc scan --radius 8` (Controller-Bereich geladen)
+prüfen; `nanoc read` zeigt nur Terminalausgabe.
+
 ## 8. Client verbinden
 
 Client in einer virtuellen Umgebung installieren:
