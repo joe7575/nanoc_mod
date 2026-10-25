@@ -13,8 +13,8 @@
 	Builds a structured snapshot (graph) of the TA4 techage network around a
 	position: nodes with number/state/inventory plus their connections
 	(tube lines resolved via tubelib2's Tube, direct neighbours as a hint).
-	TA5 teleport bridges (item/liquid) are included with their wireless pair
-	as an edge with via = "teleport".
+	TA5 teleport bridges (item/liquid) and Hyperloop chests/tanks are included;
+	their paired remote block is an edge with via = "teleport"/"hyperloop".
 
 	Only TA4/TA5 is supported by design (TA2 has no automation).
 
@@ -67,6 +67,7 @@ local function collect_names()
 		"techage:furnace_firebox", "techage:furnace_firebox_on",
 		-- TA5 wireless transport bridges (pairing is reported as an edge)
 		"techage:ta5_tele_tube", "techage:ta5_tele_pipe",
+		"techage:ta5_hl_chest", "techage:ta5_hl_tank",
 	}
 	for name in pairs(techage.NodeDef) do
 		if is_ta4(name) then
@@ -197,6 +198,29 @@ function nanoc.inspect(center, radius)
 							via = "teleport",
 						}
 					end
+				end
+			end
+		end
+	end
+
+	-- Hyperloop chest/tank pairs (techage.hyperloop)
+	for _, entry in ipairs(nodes) do
+		if entry.name == "techage:ta5_hl_chest" or entry.name == "techage:ta5_hl_tank" then
+			local nvm = techage.get_nvm(entry.pos)
+			local remote = nvm and nvm.rmt_pos
+			if remote and techage.hyperloop and techage.hyperloop.is_paired(entry.pos) then
+				local peer_node = minetest.get_node_or_nil(remote)
+				local peer_num = peer_node and minetest.get_meta(remote):get_string("node_number") or ""
+				local key = entry.id .. ">" .. (peer_num ~= "" and peer_num or P2S(remote)) .. ":hyperloop"
+				if not seen[key] then
+					seen[key] = true
+					edges[#edges + 1] = {
+						from = entry.id,
+						to = peer_num ~= "" and peer_num or P2S(remote),
+						to_name = peer_node and peer_node.name or "unknown",
+						to_pos = { x = remote.x, y = remote.y, z = remote.z },
+						via = "hyperloop",
+					}
 				end
 			end
 		end
