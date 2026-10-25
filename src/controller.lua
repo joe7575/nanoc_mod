@@ -585,3 +585,13 @@ if nanoc.tech and nanoc.tech.register_node then
 		end,
 	})
 end
+
+
+minetest.register_craft({
+	output = "nanoc:controller",
+	recipe = {
+		{"", "dye:cyan", ""},
+		{"techage:ta4_wlanchip", "basic_materials:gold_wire", "techage:ta4_ramchip"},
+		{"basic_materials:plastic_sheet", "techage:aluminum", "basic_materials:plastic_sheet"},
+	},
+})
