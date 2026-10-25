@@ -13,8 +13,10 @@
 	Builds a structured snapshot (graph) of the TA4 techage network around a
 	position: nodes with number/state/inventory plus their connections
 	(tube lines resolved via tubelib2's Tube, direct neighbours as a hint).
+	TA5 teleport bridges (item/liquid) are included with their wireless pair
+	as an edge with via = "teleport".
 
-	Only TA4 is supported by design (TA2 has no automation).
+	Only TA4/TA5 is supported by design (TA2 has no automation).
 
 ]]--
 
@@ -63,6 +65,8 @@ local function collect_names()
 		"techage:ta3_furnace_pas", "techage:ta3_furnace_act",
 		"techage:furnace_heater", "techage:furnace_heater_on",
 		"techage:furnace_firebox", "techage:furnace_firebox_on",
+		-- TA5 wireless transport bridges (pairing is reported as an edge)
+		"techage:ta5_tele_tube", "techage:ta5_tele_pipe",
 	}
 	for name in pairs(techage.NodeDef) do
 		if is_ta4(name) then
@@ -174,6 +178,30 @@ function nanoc.inspect(center, radius)
 		end
 	end
 
+	-- Wireless teleport pairs (TA5 item/liquid bridges)
+	for _, entry in ipairs(nodes) do
+		if entry.name == "techage:ta5_tele_tube" or entry.name == "techage:ta5_tele_pipe" then
+			local remote = techage.teleport and techage.teleport.get_remote_pos(entry.pos)
+			if remote then
+				local peer_node = minetest.get_node_or_nil(remote)
+				if peer_node and peer_node.name:find("techage:", 1, true) then
+					local peer_num = minetest.get_meta(remote):get_string("node_number")
+					local key = entry.id .. ">" .. (peer_num ~= "" and peer_num or P2S(remote)) .. ":teleport"
+					if not seen[key] then
+						seen[key] = true
+						edges[#edges + 1] = {
+							from = entry.id,
+							to = peer_num ~= "" and peer_num or P2S(remote),
+							to_name = peer_node.name,
+							to_pos = { x = remote.x, y = remote.y, z = remote.z },
+							via = "teleport",
+						}
+					end
+				end
+			end
+		end
+	end
+
 	-- Directed flow for nodes that push (pushers store pull_dir/push_dir).
 	local flow = {}
 	local function peer_info(npos)
@@ -221,7 +249,7 @@ end
 
 -- In-game test command
 minetest.register_chatcommand("nanoc_inspect", {
-	description = "Print a TA4 techage snapshot around you (radius optional)",
+	description = "Print a TA4/TA5 teleport techage snapshot around you (radius optional)",
 	params = "[radius]",
 	func = function(name, param)
 		local player = minetest.get_player_by_name(name)
