@@ -4,14 +4,15 @@
 //   input chest 49 -> pusher 46 -> electronic fab 44 -> pusher 47 -> chest 48
 //   chest 48 -> pusher 52 (drop to the player)
 //   chest 48 -> pusher 51 (return intermediate products to chest 49)
-//   recipe adapter 50 is docked on top of the fab; status tower 33.
+//   status tower 33.
 //
-// The adapter provides the fab recipes (many, depending on the mods):
+// The fab provides its recipes directly (same topics as the recipe adapter):
 //   156 count, 158 output count, 193 output name, 194 input name,
 //   195 find by output name, 161 time, 162 input count, 163 input slots.
 // Select a product by number (menu) or by typing its item name.
+// (A recipe adapter is only needed for machines without native topics,
+//  e.g. the TA3 furnace.)
 
-const ADAPTER = 50
 const FAB = 44
 const IN = 49
 const P_IN = 46
@@ -53,7 +54,7 @@ func stock(str8 name) {
 }
 
 func find_recipe(str8 name) {
-    g_res = ta_req_data(ADAPTER, 195, name)
+    g_res = ta_req_data(FAB, 195, name)
 }
 
 func do_push(int32 pusher, str8 name, int32 count) {
@@ -110,7 +111,7 @@ func do_sub(int32 idx, int32 sub, int32 slot, int32 depth) {
         g_res = -1
         return
     }
-    g_name = ta_req_data_s(ADAPTER, 194, slotkey(idx, slot))
+    g_name = ta_req_data_s(FAB, 194, slotkey(idx, slot))
     stock(g_name)
 }
 
@@ -124,12 +125,12 @@ func ensure_recipe(int32 idx, int32 depth) {
     int32 n = 0
     g_res = 1
     p1[0] = idx
-    n = ta_req_data(ADAPTER, 163, p1)
+    n = ta_req_data(FAB, 163, p1)
     for s = 1 to n {
         p1[0] = idx
         p1[1] = s
-        g_name = ta_req_data_s(ADAPTER, 194, slotkey(idx, s))
-        need = ta_req_data(ADAPTER, 162, p1)
+        g_name = ta_req_data_s(FAB, 194, slotkey(idx, s))
+        need = ta_req_data(FAB, 162, p1)
         if (need > 0 and g_name != "") {
             stock(g_name)
             have = g_res
@@ -184,12 +185,12 @@ func push_recipe(int32 idx) {
     int32 n = 0
     g_res = 1
     p1[0] = idx
-    n = ta_req_data(ADAPTER, 163, p1)
+    n = ta_req_data(FAB, 163, p1)
     for s = 1 to n {
         p1[0] = idx
         p1[1] = s
-        g_name = ta_req_data_s(ADAPTER, 194, slotkey(idx, s))
-        need = ta_req_data(ADAPTER, 162, p1)
+        g_name = ta_req_data_s(FAB, 194, slotkey(idx, s))
+        need = ta_req_data(FAB, 162, p1)
         if (need > 0 and g_name != "") {
             do_push(P_IN, g_name, need)
             if (g_res != 0) {
@@ -209,8 +210,8 @@ func do_craft(int32 idx, int32 eject, int32 depth) {
     int32 have = 0
     g_res = 1
     p1[0] = idx
-    cnt = ta_req_data(ADAPTER, 158, p1)
-    g_out = ta_req_data_s(ADAPTER, 193, str(idx))
+    cnt = ta_req_data(FAB, 158, p1)
+    g_out = ta_req_data_s(FAB, 193, str(idx))
     if (cnt <= 0 or g_out == "") {
         printf("Fehler: Rezept %d ist leer\n", idx)
         return
@@ -222,12 +223,12 @@ func do_craft(int32 idx, int32 eject, int32 depth) {
     }
     // ensure_recipe may have run sub-crafts: refresh the data
     p1[0] = idx
-    cnt = ta_req_data(ADAPTER, 158, p1)
-    g_out = ta_req_data_s(ADAPTER, 193, str(idx))
+    cnt = ta_req_data(FAB, 158, p1)
+    g_out = ta_req_data_s(FAB, 193, str(idx))
     // stop, select the recipe, push the inputs, start
     p0[0] = 0
     g_rc = ta_send_cmd(FAB, 1, p0)
-    g_rc = ta_send_cmd(ADAPTER, 64, str(idx))
+    g_rc = ta_send_cmd(FAB, 64, str(idx))
     push_recipe(idx)
     if (g_res != 0) {
         printf("Fehler: Zutaten konnten nicht zugefuehrt werden\n")
@@ -319,7 +320,7 @@ func show_menu() {
     int32 n = 0
     int32 cnt = 0
     p0[0] = 0
-    cnt = ta_req_data(ADAPTER, 156, p0)
+    cnt = ta_req_data(FAB, 156, p0)
     printf("\27\1")
     printf("NanoC Elektronikfabrik\n")
     printf("----------------------\n")
@@ -329,7 +330,7 @@ func show_menu() {
         n = cnt
     }
     for i = 1 to n {
-        g_nm = ta_req_data_s(ADAPTER, 193, str(i))
+        g_nm = ta_req_data_s(FAB, 193, str(i))
         printf("%d: %s\n", i, g_nm)
     }
     if (cnt > 10) {
@@ -351,11 +352,11 @@ func main_loop() {
         first = u8(g_buf, 0)
         tower(0)
         p0[0] = 0
-        count = ta_req_data(ADAPTER, 156, p0)
+        count = ta_req_data(FAB, 156, p0)
         if (first >= 48 and first <= 57) {
             sel = val(g_text)
         } else {
-            sel = ta_req_data(ADAPTER, 195, g_text)
+            sel = ta_req_data(FAB, 195, g_text)
         }
         if (sel < 1 or sel > count) {
             tower(3)
@@ -363,8 +364,8 @@ func main_loop() {
             sleep(2000)
         } else {
             p1[0] = sel
-            cnt = ta_req_data(ADAPTER, 158, p1)
-            g_out = ta_req_data_s(ADAPTER, 193, str(sel))
+            cnt = ta_req_data(FAB, 158, p1)
+            g_out = ta_req_data_s(FAB, 193, str(sel))
             p0[0] = 0
             if (cnt <= 0 or g_out == "") {
                 tower(3)
