@@ -85,9 +85,13 @@ Clients use `--tls` plus one of:
 - `--tls-fingerprint <sha256>` — pin the certificate, no CA needed
 - `--tls-insecure` — no verification (testing only)
 
-Example: `nanoc-tui --host 192.168.1.10 --tls --cafile cert.pem --token ...`.
+Example: `nanoc-tui --host <server> --tls --cafile cert.pem --token ...`.
 For MCP set `NANOC_TLS=1` and either `NANOC_CAFILE`,
 `NANOC_TLS_FINGERPRINT` or `NANOC_TLS_INSECURE=1`.
+
+`cert.pem` is public and can be distributed to clients (or publish its
+SHA-256 fingerprint); `key.pem` stays on the server. Clients store the
+certificate in a per-user directory and pass it with `--cafile`/`NANOC_CAFILE`.
 
 For a complete step-by-step server-owner guide, see
 [`doc/server_setup.md`](doc/server_setup.md) (English) or
@@ -132,19 +136,19 @@ Verification:
 nanoc-tui --host 127.0.0.1 --port 41100 --token <TOKEN>
 
 # from the client machine: is the TCP port reachable?
-nc -vz 192.168.178.246 41100
+nc -vz <server> 41100
 # Linux/macOS without nc:
-timeout 2 bash -c 'cat </dev/null >/dev/tcp/192.168.178.246/41100' && echo open
+timeout 2 bash -c 'cat </dev/null >/dev/tcp/<server>/41100' && echo open
 ```
 
-Windows PowerShell: `Test-NetConnection 192.168.178.246 -Port 41100`.
+Windows PowerShell: `Test-NetConnection <server> -Port 41100`.
 Do **not** test the game port 30000 with TCP — Luanti uses **UDP**.
 
 Firewall examples (allow TCP 41100 from the LAN):
 
 ```bash
 # ufw (Debian/Ubuntu)
-sudo ufw allow from 192.168.178.0/24 to any port 41100 proto tcp
+sudo ufw allow from <LAN_CIDR> to any port 41100 proto tcp
 # firewalld (Fedora/RHEL)
 sudo firewall-cmd --add-port=41100/tcp --permanent && sudo firewall-cmd --reload
 ```

@@ -106,6 +106,23 @@ non-privileged server user is preferable.
 Never share `<KEY>` or put it into backups/world folders. `<CERT>` is public
 and may be distributed to clients.
 
+### Publish the certificate to clients
+
+`<CERT>` is public. Keep `<KEY>` on the server and publish the certificate
+(download link, client pack, chat) or its SHA-256 fingerprint. A good server
+location is `<CERT_DIR>` outside the world/mod directory (for example
+`/etc/luanti/nanoc/`).
+
+Clients store the certificate in a per-user directory, for example:
+
+- Windows: `%APPDATA%\nanoc\cert.pem`
+- Linux: `~/.config/nanoc/cert.pem`
+- macOS: `~/Library/Application Support/nanoc/cert.pem`
+
+They pass it with `--cafile` (VS Code `"cafile"`, MCP `NANOC_CAFILE`) or pin
+it with `--tls-fingerprint`. Never distribute `<KEY>`. When the certificate is
+renewed, send the new file or fingerprint to clients.
+
 ## 5. Configure `minetest.conf`
 
 Stop the server first and back up the file; Luanti rewrites it on exit.

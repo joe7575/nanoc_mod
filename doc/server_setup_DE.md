@@ -106,6 +106,23 @@ eigener, nicht-privilegierter Server-Benutzer.
 `<KEY>` niemals weitergeben oder in Backups/Weltordner legen. `<CERT>` ist
 öffentlich und darf an Clients verteilt werden.
 
+### Zertifikat an Clients verteilen
+
+`<CERT>` ist öffentlich. `<KEY>` bleibt auf dem Server; das Zertifikat kann
+per Download, Client-Paket oder Chat verteilt werden, alternativ der
+SHA-256-Fingerprint. Ein guter Server-Ort ist `<CERT_DIR>` außerhalb von
+Welt-/Mod-Verzeichnissen (z. B. `/etc/luanti/nanoc/`).
+
+Clients legen das Zertifikat in einem Benutzerverzeichnis ab, z. B.:
+
+- Windows: `%APPDATA%\nanoc\cert.pem`
+- Linux: `~/.config/nanoc/cert.pem`
+- macOS: `~/Library/Application Support/nanoc/cert.pem`
+
+Sie übergeben es mit `--cafile` (VS Code `"cafile"`, MCP `NANOC_CAFILE`) oder
+pinnen es mit `--tls-fingerprint`. `<KEY>` niemals weitergeben. Bei einer
+Zertifikatserneuerung das neue Zertifikat bzw. den Fingerprint verteilen.
+
 ## 5. `minetest.conf` konfigurieren
 
 Server vorher stoppen und die Datei sichern; Luanti schreibt sie beim Beenden
