@@ -10,13 +10,14 @@
 
 	Read-only Techage inspection for external clients / AI.
 
-	Builds a structured snapshot (graph) of the TA4 techage network around a
+	Builds a structured snapshot (graph) of the Techage command blocks around a
 	position: nodes with number/state/inventory plus their connections
 	(tube lines resolved via tubelib2's Tube, direct neighbours as a hint).
 	TA5 teleport bridges (item/liquid) and Hyperloop chests/tanks are included;
 	their paired remote block is an edge with via = "teleport"/"hyperloop".
 
-	Only TA4/TA5 is supported by design (TA2 has no automation).
+	TA3/TA4/TA5 command blocks are included; TA1/TA2 are excluded. Building
+	lamps are included read-only (they have no Beduino interface).
 
 ]]--
 
@@ -38,10 +39,9 @@ for _, k in ipairs({ "RUNNING", "BLOCKED", "STANDBY", "NOPOWER", "FAULT",
 	end
 end
 
--- TA4 node names come in two flavours: "techage:ta4_pusher" and
--- "techage:chest_ta4" -> match "ta4" anywhere.
-local function is_ta4(name)
-	return name:find("ta4", 1, true) ~= nil
+-- TA3/TA4/TA5 command blocks; TA1/TA2 are not supported.
+local function is_supported(name)
+	return not name:find("ta1", 1, true) and not name:find("ta2", 1, true)
 end
 
 local function clean(s)
@@ -59,19 +59,37 @@ local function label(name)
 end
 
 local function collect_names()
-	local names = {
-		"nanoc:controller",
-		-- Non-TA4 furnace parts (TA3 top + TA4 heater / firebox)
+	local names = {}
+	local seen = {}
+	local function add(name)
+		if not seen[name] then
+			seen[name] = true
+			names[#names + 1] = name
+		end
+	end
+	add("nanoc:controller")
+	-- Non-TA4 furnace parts and TA5 bridges (some are not in NodeDef).
+	for _, name in ipairs({
 		"techage:ta3_furnace_pas", "techage:ta3_furnace_act",
 		"techage:furnace_heater", "techage:furnace_heater_on",
 		"techage:furnace_firebox", "techage:furnace_firebox_on",
-		-- TA5 wireless transport bridges (pairing is reported as an edge)
 		"techage:ta5_tele_tube", "techage:ta5_tele_pipe",
 		"techage:ta5_hl_chest", "techage:ta5_hl_tank",
-	}
+	}) do
+		add(name)
+	end
 	for name in pairs(techage.NodeDef) do
-		if is_ta4(name) then
-			names[#names + 1] = name
+		if is_supported(name) then
+			add(name)
+		end
+	end
+	-- Building lamps are power-controlled and have no Beduino interface, but
+	-- they are useful for plant inspection.
+	for name in pairs(minetest.registered_nodes) do
+		if name:sub(1, 8) == "techage:" and
+				(name:find("lamp", 1, true) or name:find("growlight", 1, true)
+				or name:find("lightblock", 1, true)) then
+			add(name)
 		end
 	end
 	return names
@@ -283,7 +301,7 @@ end
 
 -- In-game test command
 minetest.register_chatcommand("nanoc_inspect", {
-	description = "Print a TA4/TA5 teleport techage snapshot around you (radius optional)",
+	description = "Print a TA3/TA4/TA5 techage snapshot around you (radius optional)",
 	params = "[radius]",
 	func = function(name, param)
 		local player = minetest.get_player_by_name(name)
