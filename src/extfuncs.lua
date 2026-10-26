@@ -16,6 +16,13 @@
 	ta_send_cmd(number, topic, payload)   -> status
 	ta_req_data(number, topic, payload)   -> number
 	ta_req_data_s(number, topic, payload) -> string
+	hold()                                -> none
+	release()                             -> none
+	dclr(number)                          -> none
+	dputs(number, row, text)              -> none
+	time()                                -> number
+	daytime()                             -> number
+	daytime$(british)                     -> string
 
 	payload is a string for the Beduino string-topic range (>= 64 for
 	commands, >= 192 for requests), otherwise an int32[] array reference.
@@ -77,6 +84,59 @@ if minetest.global_exists("techage") then
 		else
 			lib.push_str(pos, "")
 		end
+	end
+
+	-- hold()/release(): collect commands and send them in one go, so that
+	-- several machines start at the same time (like NanoBasic hold/release).
+	Functions[lib.define_xfunc("hold", 0, {}, 0)] = function(pos)
+		techage.cmnd_hold(own_num(pos))
+	end
+
+	Functions[lib.define_xfunc("release", 0, {}, 0)] = function(pos)
+		techage.cmnd_release(own_num(pos))
+	end
+
+	-- dclr(number): clear the display (topic 17).
+	Functions[lib.define_xfunc("dclr", 1, {1}, 0)] = function(pos)
+		local number = lib.pop_num(pos)
+		techage.beduino_send_cmnd(own_num(pos), number, 17, nil)
+	end
+
+	-- dputs(number, row, text): row 0 adds a line (topic 67); row > 0
+	-- overwrites that row (topic 68, payload "<row> <text>").
+	Functions[lib.define_xfunc("dputs", 3, {1, 1, 2}, 0)] = function(pos)
+		local text = lib.pop_str(pos) or ""
+		local row = lib.pop_num(pos) or 0
+		local number = lib.pop_num(pos)
+		if row > 0 then
+			techage.beduino_send_cmnd(own_num(pos), number, 68, row .. " " .. text)
+		else
+			techage.beduino_send_cmnd(own_num(pos), number, 67, text)
+		end
+	end
+end
+
+-- time()/daytime(): game time (seconds since server start / minutes 0..1440).
+Functions[lib.define_xfunc("time", 0, {}, 1)] = function(pos)
+	lib.push_num(pos, minetest.get_gametime() or 0)
+end
+
+Functions[lib.define_xfunc("daytime", 0, {}, 1)] = function(pos)
+	lib.push_num(pos, math.floor((minetest.get_timeofday() or 0) * 1440))
+end
+
+-- daytime$(british): clock as "HH:MM"; british != 0 -> 12h "hh:mm am/pm".
+Functions[lib.define_xfunc("daytime$", 1, {1}, 2)] = function(pos)
+	local british = lib.pop_num(pos) or 0
+	local t = minetest.get_timeofday() or 0
+	local h = math.floor(t * 24) % 24
+	local m = math.floor(t * 1440) % 60
+	if british ~= 0 then
+		local h12 = h % 12
+		if h12 == 0 then h12 = 12 end
+		lib.push_str(pos, string.format("%02d:%02d %s", h12, m, h < 12 and "am" or "pm"))
+	else
+		lib.push_str(pos, string.format("%02d:%02d", h, m))
 	end
 end
 

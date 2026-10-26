@@ -156,12 +156,19 @@ func sum(int32[] arr, int32 n) {
 | `ta_signal(nummer, 0\|1)` | Signal (on/off) senden (Kurzform) |
 | `ta_req_data(nummer, topic, payload)` | Anfrage → Zahl; payload = `int32[]` oder String (topic ≥ 192) |
 | `ta_req_data_s(nummer, topic, payload)` | Anfrage → String |
+| `hold()` | folgende Kommandos sammeln; mit `release()` gemeinsam senden |
+| `release()` | alle seit `hold()` gesammelten Kommandos gleichzeitig senden |
+| `dclr(nummer)` | Display löschen (topic 17) |
+| `dputs(nummer, zeile, text)` | Text anzeigen: `zeile` 0 hängt eine Zeile an (topic 67), `zeile` > 0 schreibt diese Zeile (topic 68) |
 | `ta_recv(cmd[])` | Kommando in `cmd` = `[nummer, topic, p0, p1, …]` lesen; 1 wenn eines ankam |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | das empfangene Signal lesen |
 | `key()` | nächste Taste als Zahl, oder -1 |
 | `log("text")` | Log-/Debug-Meldung an den externen Debugger (VS-Code Debug Console); in-game ohne Wirkung |
 | `sleep(ms)` | Programm für `ms` Millisekunden anhalten |
 | `millis()` | Millisekunden seit Programmstart |
+| `time()` | Spielzeit in Sekunden seit Serverstart |
+| `daytime()` | Tageszeit in Minuten (0–1440) |
+| `daytime$(british)` | Uhrzeit als `"HH:MM"`; `british` ≠ 0 ergibt 12-Stunden-Format `"hh:mm am/pm"` |
 
 ## Timing – wichtig
 
@@ -204,6 +211,12 @@ die Beduino-String-Bereiche (≥ 192 bei Anfragen, ≥ 64 bei Kommandos).
 `ta_req_data`/`ta_req_data_s` liefern die Antwort **direkt** (synchron, wie bei
 Techage `basic_terminal`) – kein `sleep`+`ta_recv`-Polling für Anfragen nötig.
 `ta_send_cmd` liefert den **Status** (`0` = ok).
+
+`hold()` funktioniert wie die gleichnamige NanoBasic-Funktion: Die folgenden
+`ta_send_cmd`-Aufrufe werden gesammelt und erst bei `release()` gesendet, damit
+mehrere Maschinen (z. B. Fenstermotoren) im selben Server-Tick starten. Die
+Helfer `dclr`/`dputs` kürzen die Display-Topics ab; `time`/`daytime` liefern
+die Spielzeit.
 
 Eingehende Kommandos werden in ein Array gelesen:
 ```
@@ -251,7 +264,8 @@ Ein komplettes Überwachungs-Beispiel: `examples/techage_monitor.nanoc`
 ### Verbindungsprobleme (externes Terminal/Debugger)
 
 - Token über den **Token**-Button im Controller-Formular kopieren und exakt im
-  Client eintragen (`--token ...`).
+  Client eintragen (`--token ...`). `nanoc ping --token ...` zeigt bei
+  erfolgreicher Verbindung Nummer, Position und Zustand des Controllers.
 - Meldet der Client „connection refused", ist die Bridge aus deinem Netz nicht
   erreichbar. Frage den Server-Admin (Admin-Setup und Fehlerdiagnose: siehe
   `README.md` der Mod).

@@ -1,0 +1,271 @@
+// NanoC example: automatic window blinds (one window)
+//
+// This is a generic demo, not a copy of a specific plant. The node numbers
+// 11..14 are placeholders; replace them with the numbers of your own nodes
+// (Techage Info Tool or `nanoc scan`).
+//
+// How the blind works
+// -------------------
+// The window opening is divided into six columns. Two TA3 door controllers
+// move two interleaved panel sets:
+//
+//   DC1 (11): whole panels, slots 1..6
+//   DC2 (12): half panels, slots 1..6
+//
+// Each slot is one column. A door controller exchanges the panel of a slot
+// between the world and its inventory: `to1` places panels, `to2` removes
+// them. The half panels are needed while the whole panels slide past each
+// other, so the blind opens and closes as a wave over the six columns.
+//
+// Closed: the whole panels are placed in the window (DC1 slot state 1).
+// Open:   all panels are removed and sit in the controller inventories.
+//
+// The six steps below are one proven wave. Keep their order. If your window
+// has a different number of columns or a different slot order, adapt the slot
+// numbers and steps. `hold()`/`release()` send all commands of a step in the
+// same server tick, so the motors of a column pair start together (the
+// NanoBasic hold/release idea).
+//
+// Build and configure
+// -------------------
+// 1. Place the two door controllers so that DC1 reaches the whole-panel
+//    positions and DC2 the half-panel positions. Configure six slots (1..6)
+//    on both controllers, in the same order along the window. Slot 1 is where
+//    the wave starts; if you mirror the build, reverse the slot order or the
+//    step order.
+// 2. Place a light detector so it sees the daylight (topic 143 = light level).
+// 3. Place a TA4 display and connect it to the controller (topics 17/67/68).
+// 4. Enter the four node numbers below.
+// 5. Stop any Basic Terminal program that drives the same controllers.
+//
+// The light detector opens the blind above 13 and closes it below 10. The gap
+// between the thresholds prevents flapping around dusk. On startup the program
+// reads DC1 slots 1..6 and repairs a half-open state.
+
+const DC1 = 11        // door controller: whole panels
+const DC2 = 12        // door controller: half panels (helper panels)
+const LS  = 13        // light detector
+const DP  = 14        // display
+const STEP_MS = 800   // duration of one wave step
+
+int32 g_p[1]
+int32 g_closed = 0
+int32 g_open = 0
+int32 g_lit = 0
+int32 g_i = 0
+str8 g_msg = ""
+
+func open_window(int32 num1, int32 num2) {
+    printf("blinds: open %d/%d\n", num1, num2)
+    dputs(DP, 0, "Open window")
+
+    // Step 1: start the wave at column 1.
+    hold()
+    g_p[0] = 5
+    g_p[1] = 1
+    ta_send_cmd(num1, 9, g_p)
+    g_p[1] = 2
+    ta_send_cmd(num1, 9, g_p)
+    g_p[0] = 4
+    g_p[1] = 1
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 2
+    ta_send_cmd(num2, 9, g_p)
+    release()
+    sleep(STEP_MS)
+
+    // Step 2: move the second half panel.
+    hold()
+    g_p[0] = 5
+    g_p[1] = 1
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 2
+    ta_send_cmd(num2, 9, g_p)
+    release()
+    sleep(STEP_MS)
+
+    // Step 3: move columns 3 and 4.
+    hold()
+    g_p[0] = 5
+    g_p[1] = 3
+    ta_send_cmd(num1, 9, g_p)
+    g_p[1] = 4
+    ta_send_cmd(num1, 9, g_p)
+    g_p[0] = 4
+    g_p[1] = 3
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 4
+    ta_send_cmd(num2, 9, g_p)
+    release()
+    sleep(STEP_MS)
+
+    // Step 4: move the fourth half panel.
+    hold()
+    g_p[0] = 5
+    g_p[1] = 3
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 4
+    ta_send_cmd(num2, 9, g_p)
+    release()
+    sleep(STEP_MS)
+
+    // Step 5: move columns 5 and 6.
+    hold()
+    g_p[0] = 5
+    g_p[1] = 5
+    ta_send_cmd(num1, 9, g_p)
+    g_p[1] = 6
+    ta_send_cmd(num1, 9, g_p)
+    g_p[0] = 4
+    g_p[1] = 5
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 6
+    ta_send_cmd(num2, 9, g_p)
+    release()
+    sleep(STEP_MS)
+
+    // Step 6: finish the wave.
+    hold()
+    g_p[0] = 5
+    g_p[1] = 5
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 6
+    ta_send_cmd(num2, 9, g_p)
+    release()
+    sleep(STEP_MS)
+}
+
+func close_window(int32 num1, int32 num2) {
+    printf("blinds: close %d/%d\n", num1, num2)
+    dputs(DP, 0, "Close window")
+
+    // Closing runs the same wave backwards.
+    hold()
+    g_p[0] = 4
+    g_p[1] = 5
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 6
+    ta_send_cmd(num2, 9, g_p)
+    release()
+    sleep(STEP_MS)
+
+    hold()
+    g_p[0] = 5
+    g_p[1] = 5
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 6
+    ta_send_cmd(num2, 9, g_p)
+    g_p[0] = 4
+    g_p[1] = 5
+    ta_send_cmd(num1, 9, g_p)
+    g_p[1] = 6
+    ta_send_cmd(num1, 9, g_p)
+    release()
+    sleep(STEP_MS)
+
+    hold()
+    g_p[0] = 4
+    g_p[1] = 3
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 4
+    ta_send_cmd(num2, 9, g_p)
+    release()
+    sleep(STEP_MS)
+
+    hold()
+    g_p[0] = 5
+    g_p[1] = 3
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 4
+    ta_send_cmd(num2, 9, g_p)
+    g_p[0] = 4
+    g_p[1] = 3
+    ta_send_cmd(num1, 9, g_p)
+    g_p[1] = 4
+    ta_send_cmd(num1, 9, g_p)
+    release()
+    sleep(STEP_MS)
+
+    hold()
+    g_p[0] = 4
+    g_p[1] = 1
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 2
+    ta_send_cmd(num2, 9, g_p)
+    release()
+    sleep(STEP_MS)
+
+    hold()
+    g_p[0] = 5
+    g_p[1] = 1
+    ta_send_cmd(num2, 9, g_p)
+    g_p[1] = 2
+    ta_send_cmd(num2, 9, g_p)
+    g_p[0] = 4
+    g_p[1] = 1
+    ta_send_cmd(num1, 9, g_p)
+    g_p[1] = 2
+    ta_send_cmd(num1, 9, g_p)
+    release()
+    sleep(STEP_MS)
+}
+
+// Startup: read all six slots of DC1. All removed = open, all placed = closed.
+g_p[0] = 0
+g_p[1] = 0
+g_lit = ta_req_data(LS, 143, g_p)
+g_open = 1
+g_closed = 1
+for g_i = 1 to 6 {
+    g_p[0] = g_i
+    if (ta_req_data(DC1, 147, g_p) == 1) {
+        g_open = 0
+    } else {
+        g_closed = 0
+    }
+}
+printf("blinds: start open=%d closed=%d light=%d\n", g_open, g_closed, g_lit)
+
+if (g_lit > 13) {
+    if (g_open == 0) {
+        open_window(DC1, DC2)
+    }
+    g_open = 1
+    g_closed = 0
+} else if (g_lit < 10) {
+    if (g_closed == 0) {
+        close_window(DC1, DC2)
+    }
+    g_open = 0
+    g_closed = 1
+}
+dclr(DP)
+
+while (1) {
+    g_p[0] = 0
+    g_p[1] = 0
+    g_lit = ta_req_data(LS, 143, g_p)
+
+    if (g_lit > 13) {
+        if (g_open == 0) {
+            open_window(DC1, DC2)
+            g_open = 1
+            g_closed = 0
+        }
+    } else if (g_lit < 10) {
+        if (g_closed == 0) {
+            close_window(DC1, DC2)
+            g_open = 0
+            g_closed = 1
+        }
+    }
+
+    sleep(1000)
+
+    g_msg = daytime$(0)
+    g_msg = g_msg + ", closed="
+    g_msg = g_msg + str(g_closed)
+    g_msg = g_msg + ", light="
+    g_msg = g_msg + str(g_lit)
+    dputs(DP, 0, g_msg)
+}

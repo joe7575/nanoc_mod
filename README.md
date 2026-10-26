@@ -229,13 +229,15 @@ See [`doc/protocol.md`](../nanoc_lib/doc/protocol.md) in `nanoc_lib`.
 - one NanoC VM per controller, cooperative cycle budget per server step
   (adaptive CPU budget, server-owner tunable)
 - techage I/O by node number (`ta_send_cmd`, `ta_req_data`, `ta_signal`),
-  synchronous like techage's `basic_terminal`
+  synchronous like techage's `basic_terminal`; plus NanoBasic-compatible
+  helpers (`hold`/`release`, `dclr`/`dputs`, `time`/`daytime`/`daytime$`)
 - termlib terminal as display **and** keyboard (control chars + `ESC` sequences)
 - simplified in-game panel: only `log()` messages + `Run`, `Stop`, `Reset`,
   `Clear`, `Token`, `Update` (code/terminal are external)
 - controller **name** via the Techage Info Tool; infotext
   `NanoC Controller "<name>" <number>`
-- external debugger/terminal via `nanoc_client` (TCP, optional TLS)
+- external debugger/terminal via `nanoc_client` (TCP, optional TLS); `nanoc ping`
+  reports controller number, position, owner, run state and nanoclib version
 
 ## License
 

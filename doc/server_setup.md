@@ -55,7 +55,7 @@ Verify:
 lua5.1 -e 'local n=require("nanoclib"); print(n.version(), n.net_tls_available())'
 ```
 
-Expected: a current version (e.g. `0.2.5`) and `true` for the TLS build.
+Expected: a current version (e.g. `0.2.6`) and `true` for the TLS build.
 The Luanti process must find the module on the normal Lua package path.
 
 ## 3. Install the mod

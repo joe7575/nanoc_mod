@@ -68,7 +68,8 @@ local CH_DEBUG, CH_TERM, CH_CTRL, CH_LOG = 1, 2, 3, 4
 local CMD = { ATTACH = 1, DETACH = 2, STATE = 3, BP_SET = 4, BP_CLR = 5,
 	BP_CLR_ALL = 6, HALT = 7, CONTINUE = 8, STEP = 9, STEP_OVER = 10,
 	STEP_OUT = 11, VAR_INFO = 12, VAR_WRITE = 13, ARR_READ = 14, BACKTRACE = 15,
-	PROG_GET = 0x20, PROG_SET = 0x21, SCAN = 0x22, CATALOG = 0x23 }
+	PROG_GET = 0x20, PROG_SET = 0x21, SCAN = 0x22, CATALOG = 0x23,
+	INFO = 0x24 }
 local EVT = { HALTED = 0x80, ENDED = 0x81, DETACHED = 0x82 }
 local STS = { OK = 0, END = 1, NOT_ATTACHED = 2, NO_SCRIPT = 3, PARAM = 4,
 	NOT_HALTED = 5, FULL = 6, NO_CODE = 7, DENIED = 8, UNKNOWN = 9,
@@ -235,7 +236,7 @@ local function handle_debug(c, payload)
 			return
 		end
 	elseif cmd ~= CMD.DETACH and cmd ~= CMD.PROG_GET and cmd ~= CMD.SCAN
-			and cmd ~= CMD.CATALOG and not c.is_owner then
+			and cmd ~= CMD.CATALOG and cmd ~= CMD.INFO and not c.is_owner then
 		send_frame(c, CH_DEBUG, words({ cmd, STS.DENIED }))
 		return
 	end
@@ -349,6 +350,23 @@ local function handle_debug(c, payload)
 	elseif cmd == CMD.CATALOG then
 		local cat = nanoc.catalog and nanoc.catalog() or {}
 		local json = minetest.write_json(cat)
+		resp = { cmd, STS.OK, #json }
+		for i = 1, #json do resp[#resp + 1] = json:byte(i) end
+	elseif cmd == CMD.INFO then
+		local meta = minetest.get_meta(c.pos)
+		local info = {
+			available = true,
+			number = tonumber(meta:get_string("node_number")) or 0,
+			pos = { x = c.pos.x, y = c.pos.y, z = c.pos.z },
+			name = meta:get_string("name") or "",
+			owner = meta:get_string("owner") or "",
+			running = meta:get_int("running") == 1,
+			paused = nanoc.dbg_is_paused(c.pos) and true or false,
+			program = #meta:get_string("program") > 0,
+			protocol = VERSION,
+			nanoclib = (lib.version and lib.version()) or "",
+		}
+		local json = minetest.write_json(info)
 		resp = { cmd, STS.OK, #json }
 		for i = 1, #json do resp[#resp + 1] = json:byte(i) end
 	else

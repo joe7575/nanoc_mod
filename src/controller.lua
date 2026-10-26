@@ -291,8 +291,16 @@ local function start(pos)
 	minetest.get_node_timer(pos):start(CYCLE_TIME)
 end
 
+-- Drop commands buffered by hold() without sending them.
+local function clear_hold(pos)
+	if minetest.global_exists("techage") and techage.cmnd_hold then
+		techage.cmnd_hold(M(pos):get_string("node_number"))
+	end
+end
+
 stop = function(pos)
 	M(pos):set_int("running", 0)
+	clear_hold(pos)
 	call_io(pos, "on_stop_io")
 	minetest.get_node_timer(pos):stop()
 end
@@ -490,6 +498,7 @@ minetest.register_node("nanoc:controller", {
 			end
 			minetest.get_node_timer(pos):start(CYCLE_TIME)
 		elseif ret == lib.END or ret == lib.ERROR then
+			clear_hold(pos)
 			lib.reset(pos)   -- restart the main program next tick
 			minetest.get_node_timer(pos):start(CYCLE_TIME)
 		elseif ret == lib.SLEEP then

@@ -154,12 +154,19 @@ func sum(int32[] arr, int32 n) {
 | `ta_signal(number, 0\|1)` | On/off signal (shortcut) |
 | `ta_req_data(number, topic, payload)` | Request → number; payload = `int32[]` or string (topic ≥ 192) |
 | `ta_req_data_s(number, topic, payload)` | Request → string |
+| `hold()` | collect the following commands; send them together on `release()` |
+| `release()` | send all commands collected since `hold()` at the same time |
+| `dclr(number)` | clear a display (topic 17) |
+| `dputs(number, row, text)` | display text: `row` 0 adds a line (topic 67), `row` > 0 writes that row (topic 68) |
 | `ta_recv(cmd[])` | read a command into `cmd` = `[number, topic, p0, p1, …]`; 1 if one arrived |
 | `ta_recv_sig()`, `ta_sig_port()`, `ta_sig_val()` | read the received signal |
 | `key()` | next key as a number, or -1 |
 | `log("text")` | debug/log message to the external debugger (VS Code Debug Console); no-op in-game |
 | `sleep(ms)` | pause the program for `ms` milliseconds |
 | `millis()` | milliseconds since program start |
+| `time()` | game time in seconds since server start |
+| `daytime()` | daytime in minutes (0–1440) |
+| `daytime$(british)` | clock as `"HH:MM"`; `british` ≠ 0 gives 12-hour `"hh:mm am/pm"` |
 
 ## Timing – important
 
@@ -202,6 +209,12 @@ Beduino string-topic ranges (≥ 192 for requests, ≥ 64 for commands).
 `ta_req_data`/`ta_req_data_s` return the answer directly (synchronous, like
 techage's `basic_terminal`), so no `sleep`+`ta_recv` polling is needed for
 requests. `ta_send_cmd` returns the status (`0` = ok).
+
+`hold()` works like the NanoBasic function of the same name: the following
+`ta_send_cmd` calls are collected and only sent when `release()` is called, so
+several machines (e.g. window motors) start in the same server tick. The
+`dclr`/`dputs` helpers are shortcuts for the display topics; `time`/`daytime`
+provide the game clock.
 
 Incoming commands are read into an array:
 ```
@@ -249,7 +262,8 @@ chests empty, output chest full, autocrafter blocked/fault).
 ### Connection problems (external terminal/debugger)
 
 - Copy the token with the **Token** button in the controller form and enter it
-  exactly in the client (`--token ...`).
+  exactly in the client (`--token ...`). `nanoc ping --token ...` prints the
+  controller number, position and state when the connection works.
 - If the client reports "connection refused", the bridge is not reachable from
   your network. Ask the server admin (admin setup and troubleshooting: see the
   mod's `README.md`).
