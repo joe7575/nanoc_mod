@@ -4,9 +4,9 @@ Luanti/Minetest mod for the **NanoC** computer: a small C-like language and
 virtual machine with a source-level debugger.
 
 The VM itself lives in the external Lua C module `nanoclib` from the repo
-[`nanoc_lib`](../nanoc_lib); this mod is pure Lua and only wires the VM to
-nodes, formspecs and techage I/O. The terminal is provided by the `termlib`
-mod.
+[`nanoc_lib`](https://github.com/joe7575/nanoc_lib); this mod is pure Lua and
+only wires the VM to nodes, formspecs and techage I/O. The terminal is
+provided by the `termlib` mod.
 
 ## Dependencies
 
@@ -52,7 +52,7 @@ sudo apt install libssl-dev
 # Fedora/RHEL
 sudo dnf install openssl-devel
 
-cd ~/Projekte/nanoc_lib
+cd /path/to/nanoc_lib
 sudo luarocks make tls/nanoc-0.1.0-2.rockspec --lua-version 5.1
 ```
 
@@ -216,13 +216,14 @@ The authoritative git repo lives outside the Luanti tree. Symlink it into the
 mods directory:
 
 ```bash
-ln -s ~/Projekte/nanoc_mod ~/luanti-5.11.0/mods/nanoc
+ln -s /path/to/nanoc_mod /path/to/luanti/mods/nanoc
 ```
 
 ## Contract
 
 The mod validates `nanoclib.protocol()` and `nanoclib.version()` at start-up.
-See [`doc/protocol.md`](../nanoc_lib/doc/protocol.md) in `nanoc_lib`.
+See [`doc/protocol.md`](https://github.com/joe7575/nanoc_lib/blob/main/doc/protocol.md)
+in [`nanoc_lib`](https://github.com/joe7575/nanoc_lib).
 
 ## Features
 
@@ -236,8 +237,10 @@ See [`doc/protocol.md`](../nanoc_lib/doc/protocol.md) in `nanoc_lib`.
   `Clear`, `Token`, `Update` (code/terminal are external)
 - controller **name** via the Techage Info Tool; infotext
   `NanoC Controller "<name>" <number>`
-- external debugger/terminal via `nanoc_client` (TCP, optional TLS); `nanoc ping`
-  reports controller number, position, owner, run state and nanoclib version
+- external debugger/terminal via
+  [`nanoc_client`](https://github.com/joe7575/nanoc_client) (TCP, optional TLS);
+  `nanoc ping` reports controller number, position, owner, run state and
+  nanoclib version
 
 ## License
 
