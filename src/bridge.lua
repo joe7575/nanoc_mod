@@ -81,6 +81,23 @@ local function is_active(pos)
 	return not nanoc.controller_active or nanoc.controller_active(pos)
 end
 
+-- Keep server-log fields on one line and bounded.
+local function log_text(value, max)
+	return tostring(value or ""):gsub("[%c]", " "):sub(1, max)
+end
+
+-- One-line usage log: controller number/name/position + owner.
+local function log_event(pos, kind, extra)
+	local meta = minetest.get_meta(pos)
+	local number = log_text(meta:get_string("node_number"), 20)
+	local cname = log_text(meta:get_string("name"), 40)
+	local owner = log_text(meta:get_string("owner"), 40)
+	minetest.log("action", string.format(
+		"[nanoc] %s: controller %s \"%s\" at %s owner %s%s",
+		kind, number, cname, minetest.pos_to_string(pos),
+		owner ~= "" and owner or "-", extra or ""))
+end
+
 -- ---- byte helpers (LuaJIT has no string.pack) ----
 
 local function u16le(n)
@@ -246,6 +263,7 @@ local function handle_debug(c, payload)
 		local user_lines = w[3] or 0
 		lib.debug_attach(c.pos, allow and 1 or 0, user_lines)
 		nanoc.dbg_pause(c.pos)
+		log_event(c.pos, "debugger attached")
 		resp = { cmd, STS.OK }
 		for _, v in ipairs(state_words(c.pos)) do resp[#resp + 1] = v end
 	elseif cmd == CMD.DETACH then
@@ -344,6 +362,8 @@ local function handle_debug(c, payload)
 			center = vector.round(player:get_pos())
 		end
 		local snap = nanoc.inspect and nanoc.inspect(center, radius)
+		log_event(c.pos, "scan", string.format(" radius %d nodes %d edges %d",
+			radius, snap and #snap.nodes or 0, snap and #snap.edges or 0))
 		local json = snap and minetest.write_json(snap) or "{}"
 		resp = { cmd, STS.OK, #json }
 		for i = 1, #json do resp[#resp + 1] = json:byte(i) end
@@ -405,6 +425,7 @@ local function do_handshake(c, payload)
 	end
 	c.pos = pos
 	c.authed = true
+	log_event(pos, "external client connected")
 	send_frame(c, CH_CTRL, string.char(HSTAT.OK) .. u32le(VERSION))
 	if nanoc.add_log then
 		nanoc.add_log(pos, "external client connected")
