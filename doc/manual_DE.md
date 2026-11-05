@@ -206,17 +206,30 @@ int32 sts = ta_send_cmd(kiste, 1, p)         // Kommando -> Status (p[0] = 1)
 ta_send_cmd(kiste, 67, "text")               // String-Payload (topic >= 64)
 ```
 
-Der Payload ist ein `int32[]`-Array für numerische Topics oder ein String für
-die Beduino-String-Bereiche (≥ 192 bei Anfragen, ≥ 64 bei Kommandos).
+Das dritte Argument ist **immer erforderlich**. Bei numerischen Topics
+(< 64 bei Kommandos, < 192 bei Anfragen) muss es eine `int32[]`-Array-Referenz
+sein; für die Beduino-String-Bereiche (≥ 64 / ≥ 192) ein String. Ein Skalar ist
+ein Compilerfehler (nanoclib ≥ 0.2.7), kein gültiger „kein Payload“-Kurzweg:
+
+```
+int32 q[0]
+q[0] = 0
+ta_req_data(nr, 130, q)      // richtig
+// ta_req_data(nr, 130)      // Fehler: array or string required
+// ta_send_cmd(nr, 2, 3)     // Fehler: array or string expected
+```
+
 `ta_req_data`/`ta_req_data_s` liefern die Antwort **direkt** (synchron, wie bei
 Techage `basic_terminal`) – kein `sleep`+`ta_recv`-Polling für Anfragen nötig.
-`ta_send_cmd` liefert den **Status** (`0` = ok).
+`ta_send_cmd` liefert den **Status** (`0` = ok). Senden und Prüfen nicht im
+selben Statement: erst senden, `sleep()`, dann lesen.
 
 `hold()` funktioniert wie die gleichnamige NanoBasic-Funktion: Die folgenden
 `ta_send_cmd`-Aufrufe werden gesammelt und erst bei `release()` gesendet, damit
-mehrere Maschinen (z. B. Fenstermotoren) im selben Server-Tick starten. Die
-Helfer `dclr`/`dputs` kürzen die Display-Topics ab; `time`/`daytime` liefern
-die Spielzeit.
+mehrere Maschinen (z. B. Fenstermotoren) im selben Server-Tick starten. Beim
+Stoppen oder Upload wird eine offene Hold-Queue verworfen. Die Helfer
+`dclr`/`dputs` kürzen die Display-Topics ab; `time`/`daytime` liefern die
+Spielzeit.
 
 Eingehende Kommandos werden in ein Array gelesen:
 ```

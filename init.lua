@@ -38,6 +38,24 @@ if nanoclib.protocol() ~= 1 then
 	do return end
 end
 
+-- Typed Techage payloads use the NB_REF_STR checker introduced in 0.2.7.
+local function version_at_least(v, need)
+	local function parts(s)
+		local a, b, c = tostring(s):match("^(%d+)%.(%d+)%.(%d+)")
+		return tonumber(a) or 0, tonumber(b) or 0, tonumber(c) or 0
+	end
+	local a1, b1, c1 = parts(v)
+	local a2, b2, c2 = parts(need)
+	return a1 > a2 or (a1 == a2 and (b1 > b2 or (b1 == b2 and c1 >= c2)))
+end
+
+if not version_at_least(nanoclib.version(), "0.2.7") then
+	minetest.log("error", "[nanoc] nanoclib " .. tostring(nanoclib.version())
+		.. " is too old (0.2.7 or newer required for typed Techage payloads)."
+		.. " Rebuild it: cd nanoc_lib && sudo luarocks make --lua-version 5.1")
+	do return end
+end
+
 -- An outdated nanoclib (e.g. after updating this mod only) would otherwise
 -- fail with "attempt to call field 'xxx' (a nil value)" in a timer callback
 -- and take the whole server down. Disable the mod instead.

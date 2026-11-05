@@ -285,17 +285,23 @@ local function compile(pos)
 	return ok
 end
 
-local function start(pos)
-	M(pos):set_int("running", 1)
-	call_io(pos, "on_start_io")
-	minetest.get_node_timer(pos):start(CYCLE_TIME)
+-- Drop commands buffered by hold() without sending them. cmnd_hold() clears
+-- the list and cmnd_release() removes the hold state, so later commands run
+-- immediately.
+local function clear_hold(pos)
+	if minetest.global_exists("techage")
+			and techage.cmnd_hold and techage.cmnd_release then
+		local num = M(pos):get_string("node_number")
+		techage.cmnd_hold(num)
+		techage.cmnd_release(num)
+	end
 end
 
--- Drop commands buffered by hold() without sending them.
-local function clear_hold(pos)
-	if minetest.global_exists("techage") and techage.cmnd_hold then
-		techage.cmnd_hold(M(pos):get_string("node_number"))
-	end
+local function start(pos)
+	M(pos):set_int("running", 1)
+	clear_hold(pos)
+	call_io(pos, "on_start_io")
+	minetest.get_node_timer(pos):start(CYCLE_TIME)
 end
 
 stop = function(pos)

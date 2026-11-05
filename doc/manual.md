@@ -204,17 +204,31 @@ int32 sts = ta_send_cmd(chest, 1, p)        // command -> status (p[0] = 1)
 ta_send_cmd(chest, 67, "text")              // string payload (topic >= 64)
 ```
 
-The payload is an `int32[]` array for numeric topics, or a string for the
-Beduino string-topic ranges (≥ 192 for requests, ≥ 64 for commands).
+The third argument is **always required**. For numeric topics
+(< 64 for commands, < 192 for requests) it must be an `int32[]` array
+reference; for the Beduino string-topic ranges (≥ 64 / ≥ 192) it is a string.
+A scalar is a compile error (nanoclib ≥ 0.2.7), not a valid "no payload"
+shortcut:
+
+```
+int32 q[0]
+q[0] = 0
+ta_req_data(nr, 130, q)      // correct
+// ta_req_data(nr, 130)      // error: array or string required
+// ta_send_cmd(nr, 2, 3)     // error: array or string expected
+```
+
 `ta_req_data`/`ta_req_data_s` return the answer directly (synchronous, like
 techage's `basic_terminal`), so no `sleep`+`ta_recv` polling is needed for
-requests. `ta_send_cmd` returns the status (`0` = ok).
+requests. `ta_send_cmd` returns the status (`0` = ok). Do not send and check in
+the same statement; send, `sleep()`, then read.
 
 `hold()` works like the NanoBasic function of the same name: the following
 `ta_send_cmd` calls are collected and only sent when `release()` is called, so
-several machines (e.g. window motors) start in the same server tick. The
-`dclr`/`dputs` helpers are shortcuts for the display topics; `time`/`daytime`
-provide the game clock.
+several machines (e.g. window motors) start in the same server tick. Stopping
+or uploading a program discards a pending hold queue. The `dclr`/`dputs`
+helpers are shortcuts for the display topics; `time`/`daytime` provide the
+game clock.
 
 Incoming commands are read into an array:
 ```

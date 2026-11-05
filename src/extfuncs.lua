@@ -48,8 +48,9 @@ if minetest.global_exists("techage") then
 	end
 
 	-- ta_send_cmd(number, topic, payload) -> status
+	-- Payload is an int32[] reference or string (NB_REF_STR = 6).
 	-- String payload for topic >= 64, int32[] otherwise.
-	Functions[lib.define_xfunc("ta_send_cmd", 3, {1, 1, 4}, 1)] = function(pos)
+	Functions[lib.define_xfunc("ta_send_cmd", 3, {1, 1, 6}, 1)] = function(pos)
 		local payload = pop_payload(pos, lib.peek_num(pos, 2), 64)
 		local topic = lib.pop_num(pos)
 		local number = lib.pop_num(pos)
@@ -58,8 +59,9 @@ if minetest.global_exists("techage") then
 	end
 
 	-- ta_req_data(number, topic, payload) -> number
+	-- Payload is an int32[] reference or string (NB_REF_STR = 6).
 	-- String payload for topic >= 192 (e.g. chest item count), int32[] otherwise.
-	Functions[lib.define_xfunc("ta_req_data", 3, {1, 1, 4}, 1)] = function(pos)
+	Functions[lib.define_xfunc("ta_req_data", 3, {1, 1, 6}, 1)] = function(pos)
 		local payload = pop_payload(pos, lib.peek_num(pos, 2), 192)
 		local topic = lib.pop_num(pos)
 		local number = lib.pop_num(pos)
@@ -73,7 +75,7 @@ if minetest.global_exists("techage") then
 	end
 
 	-- ta_req_data_s(number, topic, payload) -> string
-	Functions[lib.define_xfunc("ta_req_data_s", 3, {1, 1, 4}, 2)] = function(pos)
+	Functions[lib.define_xfunc("ta_req_data_s", 3, {1, 1, 6}, 2)] = function(pos)
 		local payload = pop_payload(pos, lib.peek_num(pos, 2), 192)
 		local topic = lib.pop_num(pos)
 		local number = lib.pop_num(pos)
