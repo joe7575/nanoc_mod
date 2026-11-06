@@ -243,6 +243,12 @@ in [`nanoc_lib`](https://github.com/joe7575/nanoc_lib).
   `nanoc ping` reports controller number, position, owner, run state and
   nanoclib version
 
+## AI-assisted development
+
+Parts of the source code and documentation in this repository were created with
+the help of AI assistants (large language models). All changes are reviewed and
+tested by the maintainer.
+
 ## License
 
 AGPLv3 or later. See [`LICENSE.txt`](LICENSE.txt).
