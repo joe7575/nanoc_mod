@@ -24,6 +24,40 @@ termlib, daher wirken Steuerzeichen (`\a \b \t \n \r`) und Escape-Sequenzen
 `\27\5<1|2>`, `\27\6<pos><row>`, `\27\7`) direkt – siehe
 `examples/termlib_demo.nanoc`.
 
+### Farbe: nur in der Terminal-Ansicht
+
+Das **Terminal im Spiel kann keine Farben**. termlib kennt nur die oben
+genannten Sequenzen; jede andere Escape-Folge wird wörtlich ausgegeben,
+`\27\8…` erschiene im Spiel also als Zeichensalat.
+
+Die externe Terminal-Ansicht (`nanoc-tui` und andere ANSI-Frontends) kennt
+zwei zusätzliche Sequenzen, die termlib ignoriert:
+
+| Sequenz | Bedeutung |
+|---|---|
+| `\27\8<fg>` | Vordergrundfarbe 0..15, `255` = Standard |
+| `\27\9<bg>` | Hintergrundfarbe 0..15, `255` = Standard |
+
+Die Farbindizes sind ANSI: `0` schwarz, `1` rot, `2` grün, `3` gelb, `4` blau,
+`5` magenta, `6` cyan, `7` weiß, `8`..`15` die hellen Varianten.
+
+Ein Programm, das sie nutzt, zeigt in `nanoc-tui` Farbe und im Spiel
+Zeichensalat. Mit einem Schalter funktionieren beide Welten:
+
+```c
+const USE_COLOR = 0      // 1 = nanoc-tui, 0 = im Spiel unschädlich
+
+if (USE_COLOR == 1) {
+    printf("\27%c%c", 8, 2)      // ESC 8 2: grüne Schrift
+}
+printf("Statuszeile\n")
+if (USE_COLOR == 1) {
+    printf("\27%c%c", 8, 255)    // zurück zur Standardfarbe
+}
+```
+
+Ein vollständiges Programm steht in `examples/signal_tower.nanoc`.
+
 ## Bedienung
 
 1. **Controller** und ein **`termlib:terminal1`** platzieren; Terminal

@@ -24,6 +24,40 @@ sequences (`\27…`, e.g. `\27\1` clear, `\27\2<row>`, `\27\3<font>`,
 `\27\4<cmd>\n`, `\27\5<1|2>`, `\27\6<pos><row>`, `\27\7`) work directly – see
 `examples/termlib_demo.nanoc`.
 
+### Colour: terminal view only
+
+The **in-game terminal has no colour support**. termlib only knows the escapes
+listed above; any other escape is printed literally, so `\27\8…` would show up
+as stray characters on the in-game screen.
+
+The external terminal view (`nanoc-tui`, and any ANSI front end) understands
+two extra escapes that termlib ignores:
+
+| Sequence | Meaning |
+|---|---|
+| `\27\8<fg>` | foreground colour 0..15, `255` = default |
+| `\27\9<bg>` | background colour 0..15, `255` = default |
+
+Colour indices are ANSI: `0` black, `1` red, `2` green, `3` yellow, `4` blue,
+`5` magenta, `6` cyan, `7` white, `8`..`15` the bright variants.
+
+A program that uses them shows colour in `nanoc-tui` and stray characters on
+the in-game terminal. Guard them with a flag so both worlds work:
+
+```c
+const USE_COLOR = 0      // 1 = nanoc-tui, 0 = in-game safe
+
+if (USE_COLOR == 1) {
+    printf("\27%c%c", 8, 2)      // ESC 8 2: green foreground
+}
+printf("status line\n")
+if (USE_COLOR == 1) {
+    printf("\27%c%c", 8, 255)    // back to the default colour
+}
+```
+
+See `examples/signal_tower.nanoc` for a complete program.
+
 ## Usage
 
 1. Place a **controller** and a **`termlib:terminal1`**; connect the terminal
