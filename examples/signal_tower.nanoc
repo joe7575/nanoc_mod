@@ -9,7 +9,8 @@
 //   2. Set TOWER below to the tower's node number. Look at the tower in game:
 //      every Techage block shows its number in the infotext, e.g.
 //      "TA4 Signal Tower 6845". Do not guess the number.
-//   3. Press "Save+Compile", then "Run".
+//   3. Upload with VS Code (F5) or `nanoc exec signal_tower.nanoc
+//      --token <TOKEN>`, then start it.
 //
 // Colour note:
 //   The in-game termlib terminal has **no colour commands**. The colour

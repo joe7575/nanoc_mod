@@ -1,0 +1,144 @@
+// NanoC example: server data on a TA4 display
+//
+// Shows time, daytime, world age, program uptime and a heartbeat on a
+// TA4 Display II XXL (8 rows x 16 characters). The node numbers below are
+// placeholders; replace them with the numbers of your own blocks (shown in
+// the block's infotext, or use `nanoc scan`).
+//
+//   DISP = TA4 Display II XXL
+//   CTRL = this NanoC controller
+//
+// lcdlib derives the column count from the row count (chars = rows * 2), so
+// 8 rows = 16 characters. Longer text is cut off.
+//
+// dputs(number, row, text) writes one row (topic 68, payload "<row> <text>").
+// Row 0 appends a line and scrolls (topic 67); for fixed status rows use
+// row > 0.
+//
+// Available server data:
+//   time()        seconds since world creation
+//   daytime()     daytime in minutes (0..1440)
+//   daytime$(0)   clock as "HH:MM" (argument != 0 -> 12h "hh:mm am/pm")
+//   millis()      milliseconds since program start (reset on load/upload)
+//
+// printf() supports width specifiers (%2d, %02d, %-3d, %4s), but there is no
+// sprintf, so display rows are padded with pad2().
+//
+// Rows are only rewritten when their text changed: every dputs() triggers a
+// full texture rebuild in lcdlib. The last row is intentionally a heartbeat
+// and changes every cycle.
+//
+// NanoC does not support local str8 variables inside functions; mutable
+// strings must be global, so all scratch strings below are global.
+
+const DISP = 11           // TA4 Display II XXL
+const CTRL = 12           // this NanoC controller
+
+str8 line = ""            // scratch buffer for the row being built
+str8 lastClock = ""
+str8 lastDay = ""
+str8 lastWorld = ""
+str8 lastUp = ""
+str8 lastMs = ""
+int32 loops = 0
+
+// Two-digit zero padding: 5 -> "05"
+func str8 pad2(int32 n) {
+    if (n < 10) {
+        return "0" + str(n)
+    }
+    return str(n)
+}
+
+// Row 2: "Time   12:34"
+func str8 rowClock() {
+    return "Time   " + daytime$(0)
+}
+
+// Row 3: "Daytime 744m"
+func str8 rowDaytime() {
+    line = "Daytime "
+    line = line + str(daytime())
+    line = line + "m"
+    return line
+}
+
+// Row 4: "World 12d 05h" (world age in days and hours)
+func str8 rowWorld() {
+    int32 t = time()
+    line = "World "
+    line = line + str(t / 86400)
+    line = line + "d "
+    line = line + pad2((t % 86400) / 3600)
+    line = line + "h"
+    return line
+}
+
+// Row 5: "Uptime 0:01:23"
+func str8 rowUptime() {
+    int32 secs = millis() / 1000
+    line = "Uptime "
+    line = line + str(secs / 3600)
+    line = line + ":"
+    line = line + pad2((secs / 60) % 60)
+    line = line + ":"
+    line = line + pad2(secs % 60)
+    return line
+}
+
+// Row 7: "Millis 123456"
+func str8 rowMillis() {
+    line = "Millis "
+    line = line + str(millis())
+    return line
+}
+
+// Row 8: "Loop 1234" (heartbeat)
+func str8 rowLoop(int32 n) {
+    line = "Loop "
+    line = line + str(n)
+    return line
+}
+
+dclr(DISP)
+dputs(DISP, 1, "NanoC Server")
+dputs(DISP, 6, "Node " + str(CTRL))
+
+printf("NanoC server display started, display %d\n", DISP)
+
+while (1) {
+    line = rowClock()
+    if (line != lastClock) {
+        lastClock = line
+        dputs(DISP, 2, line)
+    }
+
+    line = rowDaytime()
+    if (line != lastDay) {
+        lastDay = line
+        dputs(DISP, 3, line)
+    }
+
+    line = rowWorld()
+    if (line != lastWorld) {
+        lastWorld = line
+        dputs(DISP, 4, line)
+    }
+
+    line = rowUptime()
+    if (line != lastUp) {
+        lastUp = line
+        dputs(DISP, 5, line)
+    }
+
+    line = rowMillis()
+    if (line != lastMs) {
+        lastMs = line
+        dputs(DISP, 7, line)
+    }
+
+    loops = loops + 1
+    dputs(DISP, 8, rowLoop(loops))
+
+    sleep(5000)           // update every 5 s
+}

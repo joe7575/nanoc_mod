@@ -37,7 +37,6 @@
 // 2. Place a light detector so it sees the daylight (topic 143 = light level).
 // 3. Place a TA4 display and connect it to the controller (topics 17/67/68).
 // 4. Enter the four node numbers below.
-// 5. Stop any Basic Terminal program that drives the same controllers.
 //
 // The light detector opens the blind above 13 and closes it below 10. The gap
 // between the thresholds prevents flapping around dusk. On startup the program

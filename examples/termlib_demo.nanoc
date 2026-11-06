@@ -7,7 +7,8 @@
 //   1. Place a NanoC controller and a termlib terminal.
 //   2. Wield the terminal, left-click the controller (preconnect), place it,
 //      open it and type:  @connect
-//   3. Paste this program into the controller, press "Save+Compile", "Run".
+//   3. Upload with VS Code (F5) or `nanoc exec termlib_demo.nanoc
+//      --token <TOKEN>`, then start it.
 //
 // The program's printf output is written to the terminal; key() reads the
 // keyboard (one byte at a time). Termlib interprets control characters and
