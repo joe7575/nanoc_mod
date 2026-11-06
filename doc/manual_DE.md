@@ -75,7 +75,7 @@ Ein vollständiges Programm steht in `examples/signal_tower.nanoc`.
    lassen sich Controller den VS-Code-Projekten zuordnen.
 
 **Knotennummern ablesen:** Jeder Techage-Block zeigt seine Nummer im Infotext,
-sobald man ihn ansieht (Fadenkreuz) – zum Beispiel `TA4 Signal Tower 1776643`.
+sobald man ihn ansieht (Fadenkreuz) – zum Beispiel `TA4 Signal Tower 6845`.
 Dafür ist kein Werkzeug nötig; der Info Tool *setzt* nur den Namen. Diese
 Nummern verwendet man im Programm, oder `nanoc scan` / `nanoc_catalog` für eine
 ganze Anlage.

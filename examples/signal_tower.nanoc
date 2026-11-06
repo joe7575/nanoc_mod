@@ -8,7 +8,7 @@
 //      (see termlib_demo.nanoc, step 2).
 //   2. Set TOWER below to the tower's node number. Look at the tower in game:
 //      every Techage block shows its number in the infotext, e.g.
-//      "TA4 Signal Tower 1776643". Do not guess the number.
+//      "TA4 Signal Tower 6845". Do not guess the number.
 //   3. Press "Save+Compile", then "Run".
 //
 // Colour note:
