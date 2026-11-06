@@ -45,6 +45,11 @@ zwei zusätzliche Sequenzen, die termlib ignoriert:
 Die Farbindizes sind ANSI: `0` schwarz, `1` rot, `2` grün, `3` gelb, `4` blau,
 `5` magenta, `6` cyan, `7` weiß, `8`..`15` die hellen Varianten.
 
+> **Niemals `255` als Farbwert verwenden.** Byte 255 ist kein gültiges UTF-8;
+> termlib speichert Ausgabebytes wörtlich, deshalb zeigt das Terminal im Spiel
+> für die ganze Zeile `<invalid UTF-8 string>`. Als neutrale Farbe `7` (weiß)
+> verwenden.
+
 Ein Programm, das sie nutzt, zeigt in `nanoc-tui` Farbe und im Spiel
 Zeichensalat. Mit einem Schalter funktionieren beide Welten:
 
@@ -56,7 +61,7 @@ if (USE_COLOR == 1) {
 }
 printf("Statuszeile\n")
 if (USE_COLOR == 1) {
-    printf("\27%c%c", 8, 255)    // zurück zur Standardfarbe
+    printf("\27%c%c", 8, 7)      // weiß = neutral (255 ist ungültiges UTF-8!)
 }
 ```
 

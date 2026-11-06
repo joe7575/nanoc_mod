@@ -45,6 +45,11 @@ two extra escapes that termlib ignores:
 Colour indices are ANSI: `0` black, `1` red, `2` green, `3` yellow, `4` blue,
 `5` magenta, `6` cyan, `7` white, `8`..`15` the bright variants.
 
+> **Never use `255` as the colour value.** Byte 255 is not valid UTF-8;
+> termlib stores output bytes literally, so the in-game terminal shows
+> `<invalid UTF-8 string>` for the whole line. Use `7` (white) as a neutral
+> colour instead.
+
 A program that uses them shows colour in `nanoc-tui` and stray characters on
 the in-game terminal. Guard them with a flag so both worlds work:
 
@@ -56,7 +61,7 @@ if (USE_COLOR == 1) {
 }
 printf("status line\n")
 if (USE_COLOR == 1) {
-    printf("\27%c%c", 8, 255)    // back to the default colour
+    printf("\27%c%c", 8, 7)      // white = neutral (255 is invalid UTF-8!)
 }
 ```
 

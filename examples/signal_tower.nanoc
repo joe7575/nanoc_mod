@@ -51,7 +51,7 @@ while (1) {
     }
     printf("tower %d   phase %d of 3   payload [%d]", TOWER, phase + 1, p[0])
     if (USE_COLOR == 1) {
-        printf("\27%c%c", 8, 255)          // ESC 8 255: default colour again
+        printf("\27%c%c", 8, 7)            // ESC 8 7: white (255 = invalid UTF-8)
     }
     printf("\n")
 
