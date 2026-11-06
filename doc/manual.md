@@ -4,6 +4,11 @@ NanoC is a small computer for Luanti/Minetest. Programs are written in a
 C-like language and are executed on the server. It can control
 Techage/TechPack machines directly (by node number).
 
+Language reference (types, operators, limits):
+<https://github.com/joe7575/nanoc/blob/main/docs/nanoc_reference.md>
+Topic table (BEP 005):
+<https://github.com/joe7575/beduino/blob/main/BEPs/bep-005_ta_cmnd.md>
+
 ## Components
 
 | Node | Purpose |
