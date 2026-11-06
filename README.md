@@ -236,7 +236,8 @@ in [`nanoc_lib`](https://github.com/joe7575/nanoc_lib).
 - simplified in-game panel: only `log()` messages + `Run`, `Stop`, `Reset`,
   `Clear`, `Token`, `Update` (code/terminal are external)
 - controller **name** via the Techage Info Tool; infotext
-  `NanoC Controller "<name>" <number>`
+  `NanoC Controller "<name>" <number>` (the number of any Techage block is
+  shown in its infotext when you look at it — no tool needed)
 - external debugger/terminal via
   [`nanoc_client`](https://github.com/joe7575/nanoc_client) (TCP, optional TLS);
   `nanoc ping` reports controller number, position, owner, run state and

@@ -1,8 +1,9 @@
 // NanoC example: automatic window blinds (one window)
 //
 // This is a generic demo, not a copy of a specific plant. The node numbers
-// 11..14 are placeholders; replace them with the numbers of your own nodes
-// (Techage Info Tool or `nanoc scan`).
+// 11..14 are placeholders; replace them with the numbers of your own nodes.
+// Look at a block in game to read its number from the infotext, or use
+// `nanoc scan`.
 //
 // How the blind works
 // -------------------

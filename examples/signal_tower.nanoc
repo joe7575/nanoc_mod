@@ -6,8 +6,9 @@
 // Setup:
 //   1. Place a NanoC controller and a termlib terminal and connect them
 //      (see termlib_demo.nanoc, step 2).
-//   2. Set TOWER below to the tower's node number. Read it in game with
-//      the Techage Info Tool (sneak + place) - do not guess it.
+//   2. Set TOWER below to the tower's node number. Look at the tower in game:
+//      every Techage block shows its number in the infotext, e.g.
+//      "TA4 Signal Tower 1776643". Do not guess the number.
 //   3. Press "Save+Compile", then "Run".
 //
 // Colour note:

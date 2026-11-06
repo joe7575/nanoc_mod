@@ -73,6 +73,11 @@ See `examples/signal_tower.nanoc` for a complete program.
    (`NanoC Controller "<name>" <number>`), which helps match controllers to
    VS Code projects.
 
+**Reading node numbers:** every Techage block shows its number in the infotext
+as soon as you look at it (crosshair) — for example `TA4 Signal Tower 1776643`.
+No tool is needed for that; the Info Tool only *sets* the name. Use these
+numbers in programs, or `nanoc scan` / `nanoc_catalog` for a whole plant.
+
 ## Language (examples)
 
 ```
