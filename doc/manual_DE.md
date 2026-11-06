@@ -102,7 +102,7 @@ while (1) {
 ```
 
 Unterstützt werden u. a. `int32`, `str8`, `while`, `if/else`, Funktionen
-(`func`), Arrays, `printf` (Formate `%d`, `%u`, `%h`, `%s`, `%%`).
+(`func`), Arrays, `printf` (Formate `%d`, `%u`, `%h`, `%s`, `%%`, dazu Breite/Nullfüllung wie `%2d` und `%02d`).
 
 Funktionen haben **typisierte Parameter** und einen optionalen Rückgabetyp
 **vor** dem Namen (weggelassen = `void`):
@@ -137,6 +137,10 @@ Operatoren: `+ - * / % mod`, `& | ^ << >>`, `== != < <= > >=`, `and or not`,
 `++ --`. Strings lassen sich mit `+` verketten und mit `== < >` vergleichen.
 
 ### Strings und Escape-Sequenzen
+
+`str8`-Variablen sind innerhalb von Funktionen nicht als lokale Variablen
+möglich; für veränderliche Strings eine globale `str8`-Variable verwenden.
+`str8`-Parameter sind nur lesbar.
 
 String-Literale unterstützen Escape-Sequenzen (zur Compile-Zeit dekodiert):
 
@@ -219,7 +223,7 @@ func sum(int32[] arr, int32 n) {
 | `key()` | nächste Taste als Zahl, oder -1 |
 | `log("text")` | Log-/Debug-Meldung an den externen Debugger (VS-Code Debug Console); in-game ohne Wirkung |
 | `sleep(ms)` | Programm für `ms` Millisekunden anhalten |
-| `millis()` | Millisekunden seit Programmstart |
+| `millis()` | Millisekunden seit Programmstart (Laden/Upload setzt zurück) |
 | `time()` | Spielzeit in Sekunden seit Serverstart |
 | `daytime()` | Tageszeit in Minuten (0–1440) |
 | `daytime$(british)` | Uhrzeit als `"HH:MM"`; `british` ≠ 0 ergibt 12-Stunden-Format `"hh:mm am/pm"` |

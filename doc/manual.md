@@ -100,7 +100,7 @@ while (1) {
 ```
 
 Supported are, among others: `int32`, `str8`, `while`, `if/else`, functions
-(`func`), arrays, and `printf` (formats `%d`, `%u`, `%h`, `%s`, `%%`).
+(`func`), arrays, and `printf` (formats `%d`, `%u`, `%h`, `%s`, `%%`, plus width/zero padding such as `%2d` and `%02d`).
 
 Functions use typed parameters and an optional return type **before** the name
 (omitted = `void`):
@@ -135,6 +135,10 @@ Operators: `+ - * / % mod`, `& | ^ << >>`, `== != < <= > >=`, `and or not`,
 `++ --`. Strings can be concatenated with `+` and compared with `== < >`.
 
 ### Strings and escape sequences
+
+`str8` variables inside functions are not supported as function-local
+variables; use a global `str8` for mutable strings. `str8` parameters are
+read-only.
 
 String literals support escape sequences (decoded at compile time):
 
@@ -216,7 +220,7 @@ func sum(int32[] arr, int32 n) {
 | `key()` | next key as a number, or -1 |
 | `log("text")` | debug/log message to the external debugger (VS Code Debug Console); no-op in-game |
 | `sleep(ms)` | pause the program for `ms` milliseconds |
-| `millis()` | milliseconds since program start |
+| `millis()` | milliseconds since program start (loading/uploading resets it) |
 | `time()` | game time in seconds since server start |
 | `daytime()` | daytime in minutes (0–1440) |
 | `daytime$(british)` | clock as `"HH:MM"`; `british` ≠ 0 gives 12-hour `"hh:mm am/pm"` |
