@@ -24,6 +24,10 @@ sequences (`\27…`, e.g. `\27\1` clear, `\27\2<row>`, `\27\3<font>`,
 `\27\4<cmd>\n`, `\27\5<1|2>`, `\27\6<pos><row>`, `\27\7`) work directly – see
 `examples/termlib_demo.nanoc`.
 
+The terminal needs **no node number**: it is attached to the controller, so
+plain `printf` output goes straight to it. Only the display helpers
+(`dclr`/`dputs`) address a separate techage display by number.
+
 ### Colour: terminal view only
 
 The **in-game terminal has no colour support**. termlib only knows the escapes

@@ -24,6 +24,10 @@ termlib, daher wirken Steuerzeichen (`\a \b \t \n \r`) und Escape-Sequenzen
 `\27\5<1|2>`, `\27\6<pos><row>`, `\27\7`) direkt – siehe
 `examples/termlib_demo.nanoc`.
 
+Das Terminal braucht **keine Knotennummer**: es ist am Controller angeschlossen,
+`printf`-Ausgaben gehen direkt dorthin. Nur die Display-Helfer (`dclr`/`dputs`)
+sprechen ein separates Techage-Display über seine Nummer an.
+
 ### Farbe: nur in der Terminal-Ansicht
 
 Das **Terminal im Spiel kann keine Farben**. termlib kennt nur die oben
