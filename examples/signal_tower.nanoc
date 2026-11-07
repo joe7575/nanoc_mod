@@ -4,8 +4,8 @@
 // current colour on the terminal, on a fixed row.
 //
 // Setup:
-//   1. Place a NanoC controller and a termlib terminal and connect them
-//      (see termlib_demo.nanoc, step 2).
+//   1. Place a NanoC controller. A termlib terminal is optional; the external
+//      `nanoc-tui` shows the controller output without one.
 //   2. Set TOWER below to the tower's node number. Look at the tower in game:
 //      every Techage block shows its number in the infotext, e.g.
 //      "TA4 Signal Tower 6845". Do not guess the number.
@@ -13,53 +13,38 @@
 //      --token <TOKEN>`, then start it.
 //
 // Colour note:
-//   The in-game termlib terminal has **no colour commands**. The colour
-//   escapes used below (ESC 8 = foreground, ESC 9 = background) are a client
-//   extension of nanoc-tui. They render as colour in nanoc-tui (and other
-//   ANSI terminals) but are printed **literally** by the in-game terminal.
-//
-//   So:
-//     USE_COLOR = 1  -> colours in nanoc-tui, stray characters in game
-//     USE_COLOR = 0  -> plain text, clean in game and in nanoc-tui
+//   The ESC 8 colour escapes are understood by `nanoc-tui` and other ANSI
+//   terminals. The in-game termlib terminal prints them literally.
 
 const TOWER = 1234        // node number of the signal tower
 const ROW = 3             // terminal row for the status line (1..20)
-const USE_COLOR = 0       // 1 = colour (nanoc-tui), 0 = plain (in-game safe)
 
-int32 p[0]                // payload: an array reference, never a scalar
-int32 phase = 0           // 0 = green, 1 = amber, 2 = red
-int32 fg[3]               // terminal colour index per phase
+int32 p[1]                // payload array: ta_send_cmd needs a reference
+int32 fg[4]               // terminal colour per phase
+int32 color = 1           // 1 = green, 2 = amber, 3 = red
 
-fg[0] = 2                 // ANSI: 1 = red, 2 = green, 3 = yellow
-fg[1] = 3
-fg[2] = 1
+fg[1] = 2                 // ANSI: 1 = red, 2 = green, 3 = yellow
+fg[2] = 3
+fg[3] = 1
+
+func color_output(int32 color) {
+    printf("\27%c%c", 2, ROW)
+    printf("\27%c%c", 8, fg[color])   // ESC 8 <fg>
+    printf("tower %d  color %d/3", TOWER, color)
+    printf("\27%c%c", 8, 7)           // ESC 8 7: white
+    printf("\n")
+}
 
 printf("\27\1")           // clear the screen once
 printf("NanoC signal tower demo\n")
-printf("tower %d, colour changes every 2 s\n", TOWER)
 
 while (1) {
-    // Topic 2 = signal tower colour: 0 = off, 1 = green, 2 = amber, 3 = red.
-    // The payload is an int32[] array; a scalar would be a compile error.
-    p[0] = phase + 1
+    p[0] = color
     ta_send_cmd(TOWER, 2, p)
 
-    // Status line on a fixed row, redrawn every cycle.
-    // ESC 2 <row> clears that row and moves the cursor there.
-    printf("\27%c%c", 2, ROW)
-    if (USE_COLOR == 1) {
-        printf("\27%c%c", 8, fg[phase])    // ESC 8 <fg>: foreground colour
-    }
-    printf("tower %d   phase %d of 3   payload [%d]", TOWER, phase + 1, p[0])
-    if (USE_COLOR == 1) {
-        printf("\27%c%c", 8, 7)            // ESC 8 7: white (255 = invalid UTF-8)
-    }
-    printf("\n")
+    // Status line on a fixed row.
+    color_output(color)
+    color = ((color + 1) % 3) + 1
 
-    phase = phase + 1
-    if (phase > 2) {
-        phase = 0
-    }
-
-    sleep(2000)
+    sleep(1000)
 }
