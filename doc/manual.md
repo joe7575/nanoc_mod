@@ -126,6 +126,7 @@ Variables are auto-created on assignment; statements end at the newline or `;`.
 int32 count = 0
 str8 name$ = "Hello"
 int32 buf[10]
+int32 fg[4] = {0, 2, 3, 1}   // initializer (global arrays)
 const MAX = 100
 count = count + 1
 buf[0] = count

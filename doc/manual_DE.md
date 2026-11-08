@@ -128,6 +128,7 @@ entstehen automatisch bei Zuweisung; Anweisungen enden mit Zeilenende oder `;`.
 int32 count = 0
 str8 name$ = "Hallo"
 int32 buf[10]
+int32 fg[4] = {0, 2, 3, 1}   // Initialisierer (globale Arrays)
 const MAX = 100
 count = count + 1
 buf[0] = count
